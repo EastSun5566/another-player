@@ -4,14 +4,12 @@ specifiers:
   '@nrwl/js': 15.4.1
   '@nrwl/workspace': 15.4.1
   nx: 15.4.1
-  prettier: ^2.6.2
   typescript: ~4.8.2
 
 devDependencies:
-  '@nrwl/js': 15.4.1_ean2qffhptllrfyvfctq27aeby
-  '@nrwl/workspace': 15.4.1_xwureqoch7frpr2i35ruxzci5i
+  '@nrwl/js': 15.4.1_nx@15.4.1+typescript@4.8.4
+  '@nrwl/workspace': 15.4.1_typescript@4.8.4
   nx: 15.4.1
-  prettier: 2.8.1
   typescript: 4.8.4
 
 packages:
@@ -62,12 +60,12 @@ packages:
       - typescript
     dev: true
 
-  /@nrwl/js/15.4.1_ean2qffhptllrfyvfctq27aeby:
+  /@nrwl/js/15.4.1_nx@15.4.1+typescript@4.8.4:
     resolution: {integrity: sha512-qsb720YFTnzTqB+lDnlRpHRlf/UrAKiXanRpOMqaOo9x2tMhSSiJcXuirq418SdEpBop/+0FIKBor5cPVFQbqg==}
     dependencies:
       '@nrwl/devkit': 15.4.1_nx@15.4.1+typescript@4.8.4
       '@nrwl/linter': 15.4.1_nx@15.4.1+typescript@4.8.4
-      '@nrwl/workspace': 15.4.1_xwureqoch7frpr2i35ruxzci5i
+      '@nrwl/workspace': 15.4.1_typescript@4.8.4
       chalk: 4.1.0
       fast-glob: 3.2.7
       fs-extra: 10.1.0
@@ -114,7 +112,7 @@ packages:
       - debug
     dev: true
 
-  /@nrwl/workspace/15.4.1_xwureqoch7frpr2i35ruxzci5i:
+  /@nrwl/workspace/15.4.1_typescript@4.8.4:
     resolution: {integrity: sha512-OL993pwsMBT5dYOYhuRWeoLIlfzHFsRBEBeNZWJKz5fKQq5wbu4F3MjfGXLuWTG8ybk+g/RsUi7ahzTep/GMbQ==}
     peerDependencies:
       prettier: ^2.6.2
@@ -141,7 +139,6 @@ packages:
       npm-run-path: 4.0.1
       nx: 15.4.1
       open: 8.4.0
-      prettier: 2.8.1
       rxjs: 6.6.7
       semver: 7.3.4
       tmp: 0.2.1
@@ -839,12 +836,6 @@ packages:
   /picomatch/2.3.1:
     resolution: {integrity: sha512-JU3teHTNjmE2VCGFzuY8EXzCDVwEqB2a8fsIvwaStHhAWJEeVd1o1QD80CU6+ZdEXXSLbSsuLwJjkCBWqRQUVA==}
     engines: {node: '>=8.6'}
-    dev: true
-
-  /prettier/2.8.1:
-    resolution: {integrity: sha512-lqGoSJBQNJidqCHE80vqZJHWHRFoNYsSpP9AjFhlhi9ODCJA541svILes/+/1GM3VaL/abZi7cpFzOpdR9UPKg==}
-    engines: {node: '>=10.13.0'}
-    hasBin: true
     dev: true
 
   /proxy-from-env/1.1.0:
