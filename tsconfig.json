@@ -17,5 +17,5 @@
     "paths": {},
     "strict": true
   },
-  "exclude": ["node_modules", "tmp"]
+  "include": ["packages/**/src", "app/**/src", ".eslintrc.cjs"]
 }
