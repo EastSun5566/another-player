@@ -2,7 +2,7 @@ class AnotherPlayer extends HTMLMediaElement {
   mount(root: Element) {
     if(root instanceof AnotherPlayer) return;
 
-    root.appendChild(root);
+    root.appendChild(this);
   }
 }
 
