@@ -37,6 +37,6 @@ const player = createPlayer({
 ## Tech Stack
 
 - `PNPM` as the package manager; run `pnpm i` to install dependencies
-- `NX` as the monorepo workspace; run `nx graph` to see a diagram of the dependencies of the projects
+- `NX` as the monorepo workspace; run `pnpm nx graph` to see a diagram of the dependencies of the projects
 - `Typescript` as the language
 - `Vite` as the build tool
