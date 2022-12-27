@@ -4,6 +4,7 @@
 
 ## Design Goals
 
+- Web component base. should be close to web standards.
 - Should be "Headless" so that can be fully customized & easily integrates with frameworks like `Tailwind` and `Windi`
 - APIs similar to those in `Vue.js`
 
