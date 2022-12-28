@@ -1,17 +1,29 @@
+// eslint-disable-next-line max-classes-per-file
 import { DEFAULT_ELEMENT_NAME } from './constants';
 
-export class AnotherPlayer extends HTMLMediaElement {
-  mount(root: Element) {
-    if (root instanceof AnotherPlayer) return;
+class PlayerElement extends HTMLVideoElement {}
 
-    root.appendChild(this);
+export class Player /* implements HTMLVideoElement */ {
+  element: PlayerElement;
+
+  constructor(playerElement: PlayerElement) {
+    this.element = playerElement;
+  }
+
+  mount(root: Element) {
+    if (root instanceof PlayerElement) {
+      this.element = root;
+      return;
+    }
+
+    root.appendChild(this.element);
   }
 }
 
 export function createPlayer({
   elementName = DEFAULT_ELEMENT_NAME,
 }) {
-  customElements.define(elementName, AnotherPlayer);
+  customElements.define(elementName, PlayerElement);
 
-  return document.createElement(elementName);
+  return new Player(document.createElement(elementName) as PlayerElement);
 }

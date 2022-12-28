@@ -1,8 +1,8 @@
 import { DEFAULT_ELEMENT_NAME } from './constants';
-import { AnotherPlayer } from './core';
+import { PlayerElement } from './core';
 
 declare global {
   interface HTMLElementTagNameMap {
-    [DEFAULT_ELEMENT_NAME]: AnotherPlayer;
+    [DEFAULT_ELEMENT_NAME]: PlayerElement;
   }
 }
