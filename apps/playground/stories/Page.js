@@ -1,15 +1,19 @@
+/* eslint-disable import/no-extraneous-dependencies */
 import { html } from 'lit-html';
 import { Header } from './Header';
 import './page.css';
 
-export const Page = ({ user, onLogin, onLogout, onCreateAccount }) => html`
+// eslint-disable-next-line import/prefer-default-export
+export const Page = ({
+  user, onLogin, onLogout, onCreateAccount,
+}) => html`
   <article>
     ${Header({
-      user,
-      onLogin,
-      onLogout,
-      onCreateAccount,
-    })}
+    user,
+    onLogin,
+    onLogout,
+    onCreateAccount,
+  })}
 
     <section>
       <h2>Pages in Storybook</h2>

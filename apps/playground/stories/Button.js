@@ -1,11 +1,15 @@
+/* eslint-disable import/prefer-default-export */
+/* eslint-disable import/no-extraneous-dependencies */
 import { html } from 'lit-html';
-import { styleMap } from 'lit-html/directives/style-map.js';
+import { styleMap } from 'lit-html/directives/style-map';
 import './button.css';
 
 /**
  * Primary UI component for user interaction
  */
-export const Button = ({ primary, backgroundColor = null, size, label, onClick }) => {
+export const Button = ({
+  primary, backgroundColor = null, size, label, onClick,
+}) => {
   const mode = primary ? 'storybook-button--primary' : 'storybook-button--secondary';
 
   return html`

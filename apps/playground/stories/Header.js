@@ -1,9 +1,13 @@
+/* eslint-disable import/no-extraneous-dependencies */
 import { html } from 'lit-html';
 
 import { Button } from './Button';
 import './header.css';
 
-export const Header = ({ user, onLogin, onLogout, onCreateAccount }) => html`
+// eslint-disable-next-line import/prefer-default-export
+export const Header = ({
+  user, onLogin, onLogout, onCreateAccount,
+}) => html`
   <header>
     <div class="wrapper">
       <div>
@@ -27,18 +31,18 @@ export const Header = ({ user, onLogin, onLogout, onCreateAccount }) => html`
       </div>
       <div>
         ${user
-          ? Button({ size: 'small', onClick: onLogout, label: 'Log out' })
-          : html`${Button({
-              size: 'small',
-              onClick: onLogin,
-              label: 'Log in',
-            })}
+    ? Button({ size: 'small', onClick: onLogout, label: 'Log out' })
+    : html`${Button({
+      size: 'small',
+      onClick: onLogin,
+      label: 'Log in',
+    })}
             ${Button({
-              primary: true,
-              size: 'small',
-              onClick: onCreateAccount,
-              label: 'Sign up',
-            })}`}
+    primary: true,
+    size: 'small',
+    onClick: onCreateAccount,
+    label: 'Sign up',
+  })}`}
       </div>
     </div>
   </header>
