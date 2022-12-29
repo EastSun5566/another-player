@@ -14,6 +14,7 @@ module.exports = defineConfig({
     'airbnb-base',
     'airbnb-typescript/base',
     'plugin:@typescript-eslint/recommended',
+    'plugin:wc/recommended',
   ],
   overrides: [],
   parser: '@typescript-eslint/parser',

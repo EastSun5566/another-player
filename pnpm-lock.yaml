@@ -14,6 +14,7 @@ importers:
       eslint-config-airbnb-typescript: ^17.0.0
       eslint-define-config: ^1.12.0
       eslint-plugin-import: ^2.25.2
+      eslint-plugin-wc: ^1.4.0
       nx: 15.4.1
       typescript: ^4.9.3
     devDependencies:
@@ -27,6 +28,7 @@ importers:
       eslint-config-airbnb-typescript: 17.0.0_qipeoi3mvzxgzndpeo4r6kwevy
       eslint-define-config: 1.12.0
       eslint-plugin-import: 2.26.0_smw3o7qjeokkcohbvp7rylsoqq
+      eslint-plugin-wc: 1.4.0_eslint@8.30.0
       nx: 15.4.1
       typescript: 4.9.4
 
@@ -1154,6 +1156,16 @@ packages:
       - supports-color
     dev: true
 
+  /eslint-plugin-wc/1.4.0_eslint@8.30.0:
+    resolution: {integrity: sha512-AmoKhJyBNcS3I+dbS/JTmRSq4REUvQ/JJCeWJezlK8gqTsdr5JD+EAvHldH/tVvU+l6qR2Tykga5hTINP9zS8A==}
+    peerDependencies:
+      eslint: '>=5'
+    dependencies:
+      eslint: 8.30.0
+      is-valid-element-name: 1.0.0
+      js-levenshtein-esm: 1.2.0
+    dev: true
+
   /eslint-scope/5.1.1:
     resolution: {integrity: sha512-2NxwbF/hZ0KpepYN0cNbo+FN6XoK7GaHlQhgx/hIZl6Va0bF45RQOOwhLIy8lQDbuCiadSLCBnH2CFYquit5bw==}
     engines: {node: '>=8.0.0'}
@@ -1675,6 +1687,10 @@ packages:
     engines: {node: '>=8'}
     dev: true
 
+  /is-potential-custom-element-name/1.0.1:
+    resolution: {integrity: sha512-bCYeRA2rVibKZd+s2625gGnGF/t7DSqDs4dP7CrLA1m7jKWz6pps0LpYLJN8Q64HtmPKJ1hrN3nzPNKFEKOUiQ==}
+    dev: true
+
   /is-regex/1.1.4:
     resolution: {integrity: sha512-kvRdxDsxZjhzUX07ZnLydzS1TU/TJlTUHHY4YLL87e37oUA49DfkLqgy+VjFocowy29cKvcSiu+kIv728jTTVg==}
     engines: {node: '>= 0.4'}
@@ -1703,6 +1719,12 @@ packages:
       has-symbols: 1.0.3
     dev: true
 
+  /is-valid-element-name/1.0.0:
+    resolution: {integrity: sha512-GZITEJY2LkSjQfaIPBha7eyZv+ge0PhBR7KITeCCWvy7VBQrCUdFkvpI+HrAPQjVtVjy1LvlEkqQTHckoszruw==}
+    dependencies:
+      is-potential-custom-element-name: 1.0.1
+    dev: true
+
   /is-weakref/1.0.2:
     resolution: {integrity: sha512-qctsuLZmIQ0+vSSMfoVvyFe2+GSEvnmZ2ezTup1SBse9+twCCeial6EEi3Nc2KFcf6+qz2FBPnjXsk8xhKSaPQ==}
     dependencies:
@@ -1729,6 +1751,10 @@ packages:
       chalk: 4.1.0
       filelist: 1.0.4
       minimatch: 3.1.2
+    dev: true
+
+  /js-levenshtein-esm/1.2.0:
+    resolution: {integrity: sha512-fzreKVq1eD7eGcQr7MtRpQH94f8gIfhdrc7yeih38xh684TNMK9v5aAu2wxfIRMk/GpAJRrzcirMAPIaSDaByQ==}
     dev: true
 
   /js-sdsl/4.2.0:
