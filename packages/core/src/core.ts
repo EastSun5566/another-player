@@ -1,7 +1,7 @@
 // eslint-disable-next-line max-classes-per-file
 import { DEFAULT_ELEMENT_NAME } from './constants';
 
-class PlayerElement extends HTMLElement {
+export class PlayerElement extends HTMLElement {
   videoElement: HTMLVideoElement;
 
   constructor() {

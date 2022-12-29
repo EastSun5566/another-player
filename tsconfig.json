@@ -15,7 +15,8 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {},
-    "strict": true
+    "strict": true,
+    "resolveJsonModule": true
   },
-  "include": ["packages/**/src", "app/**/src", ".eslintrc.cjs"]
+  "include": ["packages", "apps", ".eslintrc.cjs"]
 }
