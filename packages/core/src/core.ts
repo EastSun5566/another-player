@@ -36,7 +36,7 @@ export class Player /* implements HTMLVideoElement */ {
 
 export function createPlayer({
   elementName = DEFAULT_ELEMENT_NAME,
-}) {
+} = {}) {
   customElements.define(elementName, PlayerElement);
 
   return new Player(document.createElement(elementName) as PlayerElement);

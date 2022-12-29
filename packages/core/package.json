@@ -7,6 +7,7 @@
   ],
   "main": "dist/core.umd.cjs",
   "module": "dist/core.js",
+  "types": "dist/index.d.ts",
   "exports": {
     "import": "./dist/core.js",
     "require": "./dist/core.umd.cjs"
