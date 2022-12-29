@@ -1,7 +1,21 @@
 // eslint-disable-next-line max-classes-per-file
 import { DEFAULT_ELEMENT_NAME } from './constants';
 
-class PlayerElement extends HTMLVideoElement {}
+class PlayerElement extends HTMLElement {
+  videoElement: HTMLVideoElement;
+
+  constructor() {
+    super();
+
+    // Create shadow root
+    const shadowRoot = this.attachShadow({ mode: 'open' });
+
+    const videoElement = document.createElement('video');
+    this.videoElement = videoElement;
+
+    shadowRoot.appendChild(videoElement);
+  }
+}
 
 export class Player /* implements HTMLVideoElement */ {
   element: PlayerElement;
