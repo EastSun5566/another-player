@@ -1,0 +1,28 @@
+{
+  "name": "@another-player/playground",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "storybook": "start-storybook -p 6006",
+    "build-storybook": "build-storybook"
+  },
+  "keywords": [],
+  "author": "汪東陽",
+  "license": "MIT",
+  "devDependencies": {
+    "@babel/core": "^7.20.7",
+    "@storybook/addon-actions": "^6.5.15",
+    "@storybook/addon-essentials": "^6.5.15",
+    "@storybook/addon-links": "^6.5.15",
+    "@storybook/builder-webpack4": "^6.5.15",
+    "@storybook/manager-webpack4": "^6.5.15",
+    "@storybook/web-components": "^6.5.15",
+    "babel-loader": "^8.3.0",
+    "lit-html": "^2.5.0"
+  },
+  "dependencies": {
+    "@another-player/core": "workspace:*"
+  }
+}

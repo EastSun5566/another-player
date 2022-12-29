@@ -3,6 +3,8 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
+    "build:core": "pnpm --filter core build",
+    "serve:playground": "pnpm --filter playground storybook",
     "lint": "eslint --cache --fix --ignore-path .gitignore --ext .js,.ts packages/**/src"
   },
   "private": true,
