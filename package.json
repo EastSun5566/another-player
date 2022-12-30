@@ -4,7 +4,7 @@
   "license": "MIT",
   "scripts": {
     "build:core": "pnpm --filter core build",
-    "serve:playground": "pnpm --filter playground storybook",
+    "dev:playground": "pnpm --filter playground dev",
     "lint": "eslint --cache --fix --ignore-path .gitignore --ext .js,.ts ."
   },
   "private": true,
