@@ -1,3 +1,6 @@
+/* eslint-disable import/no-extraneous-dependencies */
+import { Meta, Story } from '@storybook/web-components';
+
 import { Button } from './Button';
 
 // More on default export: https://storybook.js.org/docs/web-components/writing-stories/introduction#default-export
@@ -12,10 +15,10 @@ export default {
       options: ['small', 'medium', 'large'],
     },
   },
-};
+} as Meta<Parameters<typeof Button>[0]>;
 
 // More on component templates: https://storybook.js.org/docs/web-components/writing-stories/introduction#using-args
-const Template = (args) => Button(args);
+const Template: Story<Parameters<typeof Button>[0]> = (args) => Button(args);
 
 export const Primary = Template.bind({});
 // More on args: https://storybook.js.org/docs/web-components/writing-stories/args

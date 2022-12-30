@@ -4,12 +4,10 @@ import { Meta, Story } from '@storybook/web-components';
 
 import { createPlayer } from '@another-player/core';
 
+createPlayer();
+
 export default {
   title: 'Video',
 } as Meta;
 
-export const Video: Story = () => {
-  createPlayer();
-
-  return html`<another-player></another-player>`;
-};
+export const Video: Story = () => html`<another-player></another-player>`;
