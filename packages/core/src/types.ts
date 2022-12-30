@@ -6,3 +6,8 @@ declare global {
     [DEFAULT_ELEMENT_NAME]: PlayerElement;
   }
 }
+
+export interface PlayerOptions {
+  elementName?: string;
+  src: string
+}
