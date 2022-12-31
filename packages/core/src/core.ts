@@ -13,7 +13,14 @@ export class PlayerElement extends HTMLElement {
 
   videoElement: HTMLVideoElement;
 
-  src?: string;
+  /** The address or URL of the a media resource that is to be considered. */
+  get src() {
+    return this.getAttribute('src') || '';
+  }
+
+  set src(source: string) {
+    this.setAttribute('src', source);
+  }
 
   constructor() {
     super();
@@ -30,7 +37,10 @@ export class PlayerElement extends HTMLElement {
     _oldValue: string,
     newValue: string,
   ) {
-    this.videoElement.setAttribute(attributeName, newValue);
+    // TODO
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    this.videoElement[attributeName] = newValue;
   }
 }
 
@@ -57,13 +67,13 @@ class Player /* implements EventTarget */ {
 
     if (element) {
       this.element = element;
-      this.element.setAttribute('src', src);
+      this.element.src = src;
     }
   }
 
   mount(root: Element) {
     this.element = document.createElement(this.elementName) as PlayerElement;
-    this.element.setAttribute('src', this.src);
+    this.element.src = this.src;
     root.appendChild(this.element);
   }
 }
