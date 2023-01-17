@@ -1,6 +1,6 @@
-# Another Player
+# Another Player (WIP)
 
-> just another player 🎬
+> just another player
 
 ## Design Goals
 
