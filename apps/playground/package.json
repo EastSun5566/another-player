@@ -5,22 +5,27 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "NODE_OPTIONS=--openssl-legacy-provider start-storybook -p 6006",
-    "build": "build-storybook"
+    "dev": "storybook dev -p 6006",
+    "build": "storybook build"
   },
   "keywords": [],
   "author": "汪東陽",
   "license": "MIT",
   "devDependencies": {
     "@babel/core": "^7.20.7",
-    "@storybook/addon-actions": "^6.5.15",
-    "@storybook/addon-essentials": "^6.5.15",
-    "@storybook/addon-links": "^6.5.15",
-    "@storybook/builder-webpack4": "^6.5.15",
-    "@storybook/manager-webpack4": "^6.5.15",
-    "@storybook/web-components": "^6.5.15",
+    "@babel/preset-env": "^7.22.7",
+    "@babel/preset-react": "^7.22.5",
+    "@babel/preset-typescript": "^7.22.5",
+    "@storybook/addon-actions": "^7.0.26",
+    "@storybook/addon-essentials": "^7.0.26",
+    "@storybook/addon-links": "^7.0.26",
+    "@storybook/web-components": "^7.0.26",
+    "@storybook/web-components-webpack5": "^7.0.26",
     "babel-loader": "^8.3.0",
-    "lit-html": "^2.5.0"
+    "lit-html": "^2.7.5",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "storybook": "^7.0.26"
   },
   "dependencies": {
     "@another-player/core": "workspace:*"
