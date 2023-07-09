@@ -13,5 +13,7 @@ export default defineConfig({
       fileName: name.slice(1).split('/')[1],
     },
   },
-  plugins: [dts()],
+  plugins: [dts({
+    exclude: ['src/vite-env.d.ts'],
+  })],
 });
