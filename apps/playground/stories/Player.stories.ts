@@ -8,8 +8,6 @@ import {
   type PlayerOptions,
 } from '@another-player/core';
 
-// let player: ReturnType<typeof createPlayer>;
-
 const DEFAULT_VIDEO_URL = 'https://cdn.jsdelivr.net/npm/big-buck-bunny-1080p@0.0.6/video.mp4';
 export default {
   title: 'Another Player',
@@ -18,21 +16,18 @@ export default {
   },
 } as Meta<PlayerOptions>;
 
-export const AnotherPlayer: StoryFn<PlayerOptions> = ({ src }) => {
-  createPlayer({ src });
+let player: ReturnType<typeof createPlayer>;
+export const AnotherPlayer: StoryFn<PlayerOptions> = ({ src = DEFAULT_VIDEO_URL }) => {
+  player = createPlayer({ src });
 
-  return html`
-  <div id="player">
-    <another-player src="${src}"></another-player>
-  </div>
-  `;
+  return html`<another-player src="${src}"></another-player>`;
 };
 
 AnotherPlayer.args = {
   src: DEFAULT_VIDEO_URL,
 };
 
-// AnotherPlayer.play = () => {
-//   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-//   player.mount(document.querySelector<PlayerElement>('#player')!);
-// };
+AnotherPlayer.play = () => {
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  player.bind(document.querySelector('another-player')!);
+};

@@ -10,5 +10,5 @@ declare global {
 export interface PlayerOptions {
   elementName?: string;
   element?: PlayerElement;
-  src: string
+  src?: string | undefined
 }

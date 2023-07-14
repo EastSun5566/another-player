@@ -61,17 +61,17 @@ export class PlayerElement extends HTMLElement {
 
 // should focus to be Player app
 class Player /* implements EventTarget */ {
-  elementName: string;
+  elementName = DEFAULT_ELEMENT_NAME;
 
   element?: PlayerElement;
 
-  src: string;
+  src = '';
 
   constructor({
     elementName = DEFAULT_ELEMENT_NAME,
     element,
-    src,
-  }: PlayerOptions) {
+    src = '',
+  }: PlayerOptions = {}) {
     this.elementName = elementName;
     this.src = src;
 
@@ -80,10 +80,13 @@ class Player /* implements EventTarget */ {
       customElements.define(elementName, PlayerElement);
     }
 
-    if (element) {
-      this.element = element;
-      this.element.src = src;
-    }
+    if (element) this.bind(element);
+  }
+
+  /** bind existing player element to player */
+  bind(element: PlayerElement) {
+    this.element = element;
+    this.src = element.src;
   }
 
   mount(root: Element) {
