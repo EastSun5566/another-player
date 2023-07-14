@@ -1,6 +1,6 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import { html } from 'lit-html';
-import { Meta, Story } from '@storybook/web-components';
+import { Meta, StoryFn } from '@storybook/web-components';
 
 import { createPlayer, PlayerElement, type PlayerOptions } from '@another-player/core';
 
@@ -14,7 +14,7 @@ export default {
   title: 'Another Player',
 } as Meta<PlayerOptions>;
 
-export const AnotherPlayer: Story<PlayerOptions> = () => html`<div id="player"></div>`;
+export const AnotherPlayer: StoryFn<PlayerOptions> = () => html`<div id="player"></div>`;
 
 AnotherPlayer.play = () => {
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion

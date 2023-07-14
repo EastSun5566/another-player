@@ -25,11 +25,26 @@ export class PlayerElement extends HTMLElement {
   constructor() {
     super();
 
-    // create shadow root
-    const shadowRoot = this.attachShadow({ mode: 'open' });
+    const videoElement = document.createElement('video');
+    videoElement.style.setProperty('width', '100%');
 
-    this.videoElement = document.createElement('video');
-    shadowRoot.appendChild(this.videoElement);
+    // TODO: should be configurable
+    videoElement.controls = true;
+
+    this.videoElement = videoElement;
+
+    const style = document.createElement('style');
+    style.textContent = `
+      :host {
+        display: inline-block;
+      }
+    `;
+
+    const shadowRoot = this.attachShadow({ mode: 'open' });
+    shadowRoot.append(
+      style,
+      videoElement,
+    );
   }
 
   attributeChangedCallback(
