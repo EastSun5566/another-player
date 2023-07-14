@@ -5,15 +5,18 @@ import dts from 'vite-plugin-dts';
 
 import { name } from './package.json';
 
+const entry = resolve(__dirname, 'src');
+const names = name.slice(1).split('/');
+
 export default defineConfig({
   build: {
     lib: {
-      entry: resolve(__dirname, 'src'),
-      name: name.slice(1).split('/')[0],
-      fileName: name.slice(1).split('/')[1],
+      entry,
+      name: names[0],
+      fileName: names[1],
     },
   },
   plugins: [dts({
-    exclude: ['src/vite-env.d.ts'],
+    entryRoot: entry,
   })],
 });
