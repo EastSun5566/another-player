@@ -1,6 +1,6 @@
 # Another Player (WIP)
 
-> just another player
+> just another player with good DX
 
 ## Design Goals
 
@@ -8,27 +8,27 @@
 - Should be "Headless" so that can be fully customized & easily integrates with frameworks like `Tailwind` and `Windi`
 - APIs similar to those in `Vue.js`
 
-```ts
-import { createPlayer } from "@another-player/core";
+  ```ts
+  import { createPlayer } from "@another-player/core";
 
-const player = createPlayer({
-  src: "https://big-buck-bunny.mp4",
-}).mount("#player");
-```
+  const player = createPlayer({
+    src: "https://big-buck-bunny.mp4",
+  }).mount("#player");
+  ```
 
 - Rich plugin system with APIs similar to those in [`Vite`](https://vitejs.dev/guide/api-plugin.html#plugin-api) and [`Rollup`](https://rollupjs.org/guide/en/#plugin-development)
 
-```ts
-import { createPlayer, definePlugin } from "@another-player/core";
+  ```ts
+  import { createPlayer, definePlugin } from "@another-player/core";
 
-const myPlugin definePlugin(options);
+  const myPlugin definePlugin(options);
 
-const player = createPlayer({
-  src: "https://big-buck-bunny.mp4",
-}).use([
-  myPlugin(),
-]).mount("#player");
-```
+  const player = createPlayer({
+    src: "https://big-buck-bunny.mp4",
+  }).use([
+    myPlugin(),
+  ]).mount("#player");
+  ```
 
 - Support for mainstream streaming formats such as DSAH and HLS through the use of plugins
 - Support for Multi-DRM
