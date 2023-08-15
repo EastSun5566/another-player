@@ -28,10 +28,13 @@ export class PlayerElement extends HTMLElement {
     const videoElement = document.createElement('video');
     videoElement.style.setProperty('width', '100%');
 
-    // TODO: should be configurable
-    videoElement.controls = true;
-
     this.videoElement = videoElement;
+
+    // const controlsSlot = document.createElement('slot');
+    // controlsSlot.name = 'controls';
+    // const button = document.createElement('button');
+    // button.textContent = 'Play';
+    // controlsSlot.append(button);
 
     const style = document.createElement('style');
     style.textContent = `
@@ -44,8 +47,14 @@ export class PlayerElement extends HTMLElement {
     shadowRoot.append(
       style,
       videoElement,
+      controlsSlot,
     );
   }
+
+  // TODO
+  connectedCallback() {}
+
+  disconnectedCallback() {}
 
   attributeChangedCallback(
     attributeName: PlayerElementAttributeName,
