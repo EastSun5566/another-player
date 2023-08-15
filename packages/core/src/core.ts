@@ -47,7 +47,7 @@ export class PlayerElement extends HTMLElement {
     shadowRoot.append(
       style,
       videoElement,
-      controlsSlot,
+      // controlsSlot,
     );
   }
 
