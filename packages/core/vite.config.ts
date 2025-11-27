@@ -19,4 +19,8 @@ export default defineConfig({
   plugins: [dts({
     entryRoot: entry,
   })],
+  test: {
+    environment: 'jsdom',
+    include: ['src/**/*.test.ts'],
+  },
 });

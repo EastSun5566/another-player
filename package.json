@@ -5,7 +5,9 @@
   "scripts": {
     "build:core": "pnpm --filter core build",
     "dev:playground": "pnpm --filter playground dev",
-    "lint": "eslint --cache --fix --ignore-path .gitignore --ext .js,.ts ."
+    "lint": "eslint --cache --fix --ignore-path .gitignore --ext .js,.ts .",
+    "test": "pnpm --filter core test",
+    "test:watch": "pnpm --filter core test:watch"
   },
   "private": true,
   "devDependencies": {
