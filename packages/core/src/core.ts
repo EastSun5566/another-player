@@ -31,25 +31,48 @@ export class PlayerElement extends HTMLElement {
 
     this.videoElement = videoElement;
 
-    // const controlsSlot = document.createElement('slot');
-    // controlsSlot.name = 'controls';
-    // const button = document.createElement('button');
-    // button.textContent = 'Play';
-    // controlsSlot.append(button);
+    // Slot for custom controls
+    const controlsSlot = document.createElement('slot');
+    controlsSlot.name = 'controls';
+
+    // Default slot for any other content
+    const defaultSlot = document.createElement('slot');
 
     const style = document.createElement('style');
     style.textContent = `
       :host {
         display: inline-block;
+        position: relative;
+      }
+
+      .container {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+      }
+
+      .controls-container {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 1;
       }
     `;
 
+    const container = document.createElement('div');
+    container.className = 'container';
+
+    const controlsContainer = document.createElement('div');
+    controlsContainer.className = 'controls-container';
+    controlsContainer.appendChild(controlsSlot);
+
+    container.appendChild(videoElement);
+    container.appendChild(controlsContainer);
+    container.appendChild(defaultSlot);
+
     const shadowRoot = this.attachShadow({ mode: 'open' });
-    shadowRoot.append(
-      style,
-      videoElement,
-      // controlsSlot,
-    );
+    shadowRoot.append(style, container);
   }
 
   // TODO
