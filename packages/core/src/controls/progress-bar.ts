@@ -18,8 +18,12 @@ export class ProgressBarElement extends PlayerControlElement {
     this.isSeeking = true;
     const target = e.target as HTMLInputElement;
     const value = parseFloat(target.value);
-    const duration = videoElement.duration || 0;
-    videoElement.currentTime = value * duration;
+    const { duration } = videoElement;
+
+    // Only seek if duration is a valid finite number
+    if (Number.isFinite(duration) && duration > 0) {
+      videoElement.currentTime = value * duration;
+    }
   };
 
   private handleChange = (): void => {
@@ -98,9 +102,12 @@ export class ProgressBarElement extends PlayerControlElement {
     const { videoElement } = this;
     if (!videoElement) return;
 
-    const duration = videoElement.duration || 0;
+    const { duration } = videoElement;
     const currentTime = videoElement.currentTime || 0;
-    const progress = duration > 0 ? currentTime / duration : 0;
+    // Only calculate progress if duration is a valid finite number
+    const progress = Number.isFinite(duration) && duration > 0
+      ? currentTime / duration
+      : 0;
 
     this.slider.value = String(progress);
     this.slider.style.setProperty('--progress-percent', `${progress * 100}%`);
