@@ -12,6 +12,18 @@ const DEFAULT_VIDEO_URL = 'https://cdn.jsdelivr.net/npm/big-buck-bunny-1080p@0.0
 const HLS_VIDEO_URL = 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8';
 const DASH_VIDEO_URL = 'https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd';
 
+// Store player instances for cleanup
+const playerInstances = new Map();
+
+// Cleanup function to destroy previous player instances
+const cleanupPlayer = (storyId) => {
+  const existingPlayer = playerInstances.get(storyId);
+  if (existingPlayer) {
+    existingPlayer.destroy();
+    playerInstances.delete(storyId);
+  }
+};
+
 export default {
   title: 'Another Player',
   argTypes: {
@@ -22,14 +34,14 @@ export default {
   },
 };
 
-let player;
-
 /**
  * Basic MP4 Player
  * Demonstrates the core player functionality with a standard MP4 video file.
  */
 export const BasicPlayer = ({ src = DEFAULT_VIDEO_URL }) => {
-  player = createPlayer({ src });
+  cleanupPlayer('basic');
+  const player = createPlayer({ src });
+  playerInstances.set('basic', player);
 
   return html`
     <div style="max-width: 800px; margin: 0 auto;">
@@ -43,7 +55,10 @@ BasicPlayer.args = {
 };
 
 BasicPlayer.play = () => {
-  player.bind(document.querySelector('another-player'));
+  const player = playerInstances.get('basic');
+  if (player) {
+    player.bind(document.querySelector('another-player'));
+  }
 };
 
 /**
@@ -52,15 +67,18 @@ BasicPlayer.play = () => {
  * Features adaptive bitrate streaming.
  */
 export const HLSPlayer = ({ src = HLS_VIDEO_URL }) => {
-  // Create player with HLS plugin after DOM is ready
-  setTimeout(() => {
-    const existingContainer = document.getElementById('hls-player-container');
-    if (existingContainer) {
-      player = createPlayer({ src })
+  cleanupPlayer('hls');
+
+  // Use requestAnimationFrame for more reliable DOM timing
+  requestAnimationFrame(() => {
+    const container = document.getElementById('hls-player-container');
+    if (container) {
+      const player = createPlayer({ src })
         .use(hlsPlugin({ enableAdaptiveBitrate: true }))
-        .mount(existingContainer);
+        .mount(container);
+      playerInstances.set('hls', player);
     }
-  }, 0);
+  });
 
   return html`
     <div style="max-width: 800px; margin: 0 auto;">
@@ -94,15 +112,18 @@ HLSPlayer.parameters = {
  * Features adaptive bitrate streaming.
  */
 export const DASHPlayer = ({ src = DASH_VIDEO_URL }) => {
-  // Create player with DASH plugin after DOM is ready
-  setTimeout(() => {
-    const existingContainer = document.getElementById('dash-player-container');
-    if (existingContainer) {
-      player = createPlayer({ src })
+  cleanupPlayer('dash');
+
+  // Use requestAnimationFrame for more reliable DOM timing
+  requestAnimationFrame(() => {
+    const container = document.getElementById('dash-player-container');
+    if (container) {
+      const player = createPlayer({ src })
         .use(dashPlugin({ enableAdaptiveBitrate: true }))
-        .mount(existingContainer);
+        .mount(container);
+      playerInstances.set('dash', player);
     }
-  }, 0);
+  });
 
   return html`
     <div style="max-width: 800px; margin: 0 auto;">
