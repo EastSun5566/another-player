@@ -252,7 +252,8 @@ export const dashPlugin = definePlugin<DashPluginOptions>((options = {}) => {
       };
     },
 
-    destroy() {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    destroy(_context: PluginContext) {
       if (dashPlayer) {
         dashPlayer.reset();
         dashPlayer = null;

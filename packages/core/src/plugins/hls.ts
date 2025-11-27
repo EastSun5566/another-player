@@ -241,7 +241,8 @@ export const hlsPlugin = definePlugin<HlsPluginOptions>((options = {}) => {
       };
     },
 
-    destroy() {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    destroy(_context: PluginContext) {
       if (hlsInstance) {
         hlsInstance.destroy();
         hlsInstance = null;
