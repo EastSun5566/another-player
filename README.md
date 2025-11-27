@@ -52,9 +52,9 @@
 
 ### Phase 3: Streaming Support
 
-- [ ] HLS plugin with [`HLS.js`](https://github.com/video-dev/hls.js) integration
-- [ ] DASH plugin with [`dash.js`](https://github.com/Dash-Industry-Forum/dash.js) integration
-- [ ] Adaptive bitrate streaming support
+- [x] HLS plugin with [`HLS.js`](https://github.com/video-dev/hls.js) integration
+- [x] DASH plugin with [`dash.js`](https://github.com/Dash-Industry-Forum/dash.js) integration
+- [x] Adaptive bitrate streaming support
 
 ### Phase 4: DRM Support
 

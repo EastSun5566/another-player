@@ -16,7 +16,15 @@ module.exports = defineConfig({
     'plugin:@typescript-eslint/recommended',
     'plugin:wc/recommended',
   ],
-  overrides: [],
+  overrides: [
+    {
+      // Disable import/no-unresolved for playground stories (pnpm workspace packages)
+      files: ['apps/playground/**/*.js', 'apps/playground/**/*.ts'],
+      rules: {
+        'import/no-unresolved': 'off',
+      },
+    },
+  ],
   parser: '@typescript-eslint/parser',
   parserOptions: {
     ecmaVersion: 'latest',

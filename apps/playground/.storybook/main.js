@@ -7,5 +7,9 @@ module.exports = {
   },
   docs: {
     autodocs: true
+  },
+  typescript: {
+    check: false,
+    reactDocgen: false
   }
 };
