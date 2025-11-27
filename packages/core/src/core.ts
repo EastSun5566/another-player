@@ -461,17 +461,34 @@ class Player {
 
   /** Destroy the player and clean up resources */
   destroy(): void {
-    // Call destroy hooks on plugins before cleanup
-    // Fire-and-forget pattern with catch for error handling
-    if (this.element) {
-      this.destroyPlugins().catch((error) => {
+    // Store plugins copy and context before cleanup
+    const pluginsToDestroy = [...this.plugins];
+    const elementRef = this.element;
+
+    // Clear plugins first to prevent any new operations
+    this.plugins = [];
+
+    // Call destroy hooks on plugins asynchronously
+    if (elementRef) {
+      // Create context before clearing element reference
+      const context = this.createPluginContext();
+      // Process destroy hooks in reverse order
+      (async () => {
+        // eslint-disable-next-line no-restricted-syntax
+        for (const plugin of [...pluginsToDestroy].reverse()) {
+          if (plugin.destroy) {
+            // eslint-disable-next-line no-await-in-loop
+            await plugin.destroy(context);
+          }
+        }
+      })().catch((error) => {
         // eslint-disable-next-line no-console
         console.error('Error in plugin destroy:', error);
       });
     }
+
     this.cleanupVideoEventListeners();
     this.eventListeners.clear();
-    this.plugins = [];
     if (this.element?.parentNode) {
       this.element.parentNode.removeChild(this.element);
     }
