@@ -9,20 +9,20 @@
     "build": "storybook build"
   },
   "devDependencies": {
-    "@babel/core": "^7.20.7",
-    "@babel/preset-env": "^7.22.7",
-    "@babel/preset-react": "^7.22.5",
-    "@babel/preset-typescript": "^7.22.5",
-    "@storybook/addon-actions": "^7.0.26",
-    "@storybook/addon-essentials": "^7.0.26",
-    "@storybook/addon-links": "^7.0.26",
-    "@storybook/web-components": "^7.0.26",
-    "@storybook/web-components-webpack5": "^7.0.26",
-    "babel-loader": "^8.3.0",
-    "lit-html": "^2.7.5",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "storybook": "^7.0.26"
+    "@babel/core": "^7.28.5",
+    "@babel/preset-env": "^7.28.5",
+    "@babel/preset-react": "^7.28.5",
+    "@babel/preset-typescript": "^7.28.5",
+    "@storybook/addon-actions": "^8.6.14",
+    "@storybook/addon-essentials": "^8.6.14",
+    "@storybook/addon-links": "^8.6.14",
+    "@storybook/web-components": "^8.6.14",
+    "@storybook/web-components-webpack5": "^8.6.14",
+    "babel-loader": "^10.0.0",
+    "lit-html": "^3.3.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "storybook": "^8.6.14"
   },
   "dependencies": {
     "@another-player/core": "workspace:*"
