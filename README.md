@@ -45,10 +45,10 @@
 
 ### Phase 2: Plugin System
 
-- [ ] `definePlugin` API implementation
-- [ ] Plugin lifecycle hooks
-- [ ] Plugin options and configuration
-- [ ] Built-in plugins architecture
+- [x] `definePlugin` API implementation
+- [x] Plugin lifecycle hooks
+- [x] Plugin options and configuration
+- [x] Built-in plugins architecture
 
 ### Phase 3: Streaming Support
 
