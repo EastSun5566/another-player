@@ -1,6 +1,7 @@
 /* eslint-disable class-methods-use-this */
 // eslint-disable-next-line max-classes-per-file
 import { DEFAULT_ELEMENT_NAME } from './constants';
+import type { Plugin, PluginContext } from './plugin';
 import type { PlayerEventMap, PlayerOptions } from './types';
 
 type PlayerElementAttributeName = keyof HTMLVideoElement;
@@ -78,6 +79,8 @@ class Player {
 
   src = '';
 
+  private plugins: Plugin[] = [];
+
   private eventListeners: Map<string, Set<PlayerEventListener<keyof PlayerEventMap>>> = new Map();
 
   private videoEventCleanup: (() => void)[] = [];
@@ -98,6 +101,113 @@ class Player {
     if (element) this.bind(element);
   }
 
+  /**
+   * Register one or more plugins with the player.
+   * Plugins are installed in the order they are registered.
+   *
+   * @example
+   * ```ts
+   * player.use([myPlugin(), anotherPlugin({ option: true })]);
+   * ```
+   */
+  use(plugins: Plugin | Plugin[]): this {
+    const pluginArray = Array.isArray(plugins) ? plugins : [plugins];
+
+    pluginArray.forEach((plugin) => {
+      // Prevent duplicate plugin registration
+      if (this.plugins.some((p) => p.name === plugin.name)) {
+        // eslint-disable-next-line no-console
+        console.warn(`Plugin "${plugin.name}" is already registered.`);
+        return;
+      }
+      this.plugins.push(plugin);
+    });
+
+    return this;
+  }
+
+  /** Get registered plugins */
+  getPlugins(): Plugin[] {
+    return [...this.plugins];
+  }
+
+  /** Create plugin context for lifecycle hooks */
+  private createPluginContext(): PluginContext {
+    if (!this.element) {
+      throw new Error('Player not mounted');
+    }
+
+    return {
+      videoElement: this.element.videoElement,
+      getSrc: () => this.src,
+      setSrc: (src: string) => {
+        this.src = src;
+        if (this.element) {
+          this.element.src = src;
+        }
+      },
+      on: (event, listener) => {
+        this.on(event, listener);
+      },
+      off: (event, listener) => {
+        this.off(event, listener);
+      },
+    };
+  }
+
+  /** Call install hook on all registered plugins */
+  private async installPlugins(): Promise<void> {
+    const context = this.createPluginContext();
+    // eslint-disable-next-line no-restricted-syntax
+    for (const plugin of this.plugins) {
+      if (plugin.install) {
+        // eslint-disable-next-line no-await-in-loop
+        await plugin.install(context);
+      }
+    }
+  }
+
+  /** Call mount hook on all registered plugins */
+  private async mountPlugins(): Promise<void> {
+    const context = this.createPluginContext();
+    // eslint-disable-next-line no-restricted-syntax
+    for (const plugin of this.plugins) {
+      if (plugin.mount) {
+        // eslint-disable-next-line no-await-in-loop
+        await plugin.mount(context);
+      }
+    }
+  }
+
+  /** Call destroy hook on all registered plugins */
+  private async destroyPlugins(): Promise<void> {
+    if (!this.element) return;
+    const context = this.createPluginContext();
+    // Process in reverse order for cleanup
+    // eslint-disable-next-line no-restricted-syntax
+    for (const plugin of [...this.plugins].reverse()) {
+      if (plugin.destroy) {
+        // eslint-disable-next-line no-await-in-loop
+        await plugin.destroy(context);
+      }
+    }
+  }
+
+  /** Transform source through all registered plugins */
+  private async transformSource(src: string): Promise<string> {
+    if (!this.element) return src;
+    const context = this.createPluginContext();
+    let transformedSrc = src;
+    // eslint-disable-next-line no-restricted-syntax
+    for (const plugin of this.plugins) {
+      if (plugin.transformSource) {
+        // eslint-disable-next-line no-await-in-loop
+        transformedSrc = await plugin.transformSource(transformedSrc, context);
+      }
+    }
+    return transformedSrc;
+  }
+
   /** bind existing player element to player */
   bind(element: PlayerElement): this {
     this.element = element;
@@ -114,10 +224,45 @@ class Player {
     }
 
     this.element = document.createElement(this.elementName) as PlayerElement;
-    this.element.src = this.src;
+
+    // Apply source transform (sync part - actual transform happens async)
+    // Note: transformSource and plugin hooks are called async but mount returns sync
+    // This allows chaining while still supporting async plugins
+    this.applySourceAndPlugins();
+
     rootElement.appendChild(this.element);
     this.setupVideoEventListeners();
     return this;
+  }
+
+  /** Apply source transformation and call plugin hooks */
+  private applySourceAndPlugins(): void {
+    if (!this.element) return;
+
+    // Immediately set the source
+    this.element.src = this.src;
+
+    // Call install and mount hooks asynchronously
+    // Fire-and-forget pattern with catch for error handling
+    (async () => {
+      // Check if player was destroyed before async operations complete
+      if (!this.element) return;
+      await this.installPlugins();
+      // Check again after install
+      if (!this.element) return;
+      // Transform source through plugins
+      const transformedSrc = await this.transformSource(this.src);
+      if (this.element && transformedSrc !== this.src) {
+        this.src = transformedSrc;
+        this.element.src = transformedSrc;
+      }
+      // Check again before mount
+      if (!this.element) return;
+      await this.mountPlugins();
+    })().catch((error) => {
+      // eslint-disable-next-line no-console
+      console.error('Error in plugin lifecycle:', error);
+    });
   }
 
   /** Start playback */
@@ -316,8 +461,17 @@ class Player {
 
   /** Destroy the player and clean up resources */
   destroy(): void {
+    // Call destroy hooks on plugins before cleanup
+    // Fire-and-forget pattern with catch for error handling
+    if (this.element) {
+      this.destroyPlugins().catch((error) => {
+        // eslint-disable-next-line no-console
+        console.error('Error in plugin destroy:', error);
+      });
+    }
     this.cleanupVideoEventListeners();
     this.eventListeners.clear();
+    this.plugins = [];
     if (this.element?.parentNode) {
       this.element.parentNode.removeChild(this.element);
     }
