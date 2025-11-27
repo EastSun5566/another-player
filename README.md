@@ -38,10 +38,10 @@
 
 ### Phase 1: Core Foundation
 
-- [ ] Basic player implementation with web component
-- [ ] `createPlayer` API with mount functionality
-- [ ] Basic media playback controls (play, pause, seek, volume)
-- [ ] Event system for player state changes
+- [x] Basic player implementation with web component
+- [x] `createPlayer` API with mount functionality
+- [x] Basic media playback controls (play, pause, seek, volume)
+- [x] Event system for player state changes
 
 ### Phase 2: Plugin System
 
