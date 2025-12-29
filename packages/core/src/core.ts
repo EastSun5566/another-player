@@ -57,6 +57,7 @@ export class PlayerElement extends HTMLElement {
         left: 0;
         right: 0;
         z-index: 1;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.3) 70%, transparent 100%);
       }
     `;
 
