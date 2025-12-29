@@ -205,4 +205,12 @@ describe('PlayerElement', () => {
     element.src = 'https://example.com/video.mp4';
     expect(element.videoElement.src).toBe('https://example.com/video.mp4');
   });
+
+  it('should set crossOrigin attribute to anonymous for CORS support', () => {
+    createPlayer();
+    const element = document.createElement(DEFAULT_ELEMENT_NAME) as PlayerElement;
+    document.body.appendChild(element);
+
+    expect(element.videoElement.crossOrigin).toBe('anonymous');
+  });
 });
