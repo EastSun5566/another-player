@@ -28,6 +28,7 @@ export class PlayerElement extends HTMLElement {
 
     const videoElement = document.createElement('video');
     videoElement.style.setProperty('width', '100%');
+    videoElement.crossOrigin = 'anonymous';
 
     this.videoElement = videoElement;
 
