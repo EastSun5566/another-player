@@ -237,6 +237,7 @@ class Player {
   bind(element: PlayerElement): this {
     this.element = element;
     this.src = element.src;
+    this.applySourceAndPlugins();
     this.setupVideoEventListeners();
     return this;
   }
