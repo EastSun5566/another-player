@@ -174,6 +174,19 @@ describe('DASH Plugin', () => {
         false,
       );
     });
+
+    it('should clear video element src before initializing dash.js', async () => {
+      const player = createPlayer({ src: 'https://example.com/stream.mpd' });
+      player.use(dashPlugin()).mount(container);
+
+      // Wait for async plugin hooks
+      await new Promise((resolve) => { setTimeout(resolve, 50); });
+
+      // The video element should have its src attribute removed
+      // dash.js will handle the source loading instead
+      const videoElement = player.element?.videoElement;
+      expect(videoElement?.getAttribute('src')).toBeNull();
+    });
   });
 
   describe('Plugin with options', () => {

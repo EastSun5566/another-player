@@ -165,6 +165,10 @@ export const dashPlugin = definePlugin<DashPluginOptions>((options = {}) => {
       // Create DASH player instance
       dashPlayer = dashjs.MediaPlayer().create();
 
+      // Remove src attribute to prevent native video element from loading the .mpd file
+      // dash.js will handle the source loading instead
+      videoElement.removeAttribute('src');
+
       // Apply initial settings
       dashPlayer.updateSettings({
         ...dashConfig,
