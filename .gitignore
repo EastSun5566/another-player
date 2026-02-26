@@ -42,3 +42,6 @@ Thumbs.db
 
 # Storybook
 storybook-static
+
+# Lock files (project uses pnpm-lock.yaml)
+package-lock.json
