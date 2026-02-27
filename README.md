@@ -58,10 +58,64 @@
 
 ### Phase 4: DRM Support
 
-- [ ] Widevine DRM integration
-- [ ] FairPlay DRM integration
-- [ ] PlayReady DRM integration
-- [ ] Multi-DRM unified API
+- [x] Widevine DRM integration
+- [x] FairPlay DRM integration
+- [x] PlayReady DRM integration
+- [x] Multi-DRM unified API
+
+## DRM Support
+
+DRM-protected streams are supported via the built-in HLS and DASH plugins.
+
+### DASH – Widevine / PlayReady
+
+Pass `protectionData` to `dashPlugin`. Each key is a [key system string](https://dashif.org/dash.js/pages/usage/drm.html) and the value describes the license server and optional headers.
+
+```ts
+import { createPlayer } from "@another-player/core";
+import { dashPlugin } from "@another-player/core/plugins";
+
+const player = createPlayer({
+  src: "https://example.com/stream.mpd",
+}).use(dashPlugin({
+  protectionData: {
+    "com.widevine.alpha": {
+      serverURL: "https://license.example.com/widevine",
+      httpRequestHeaders: { Authorization: "Bearer <token>" },
+    },
+    "com.microsoft.playready": {
+      serverURL: "https://license.example.com/playready",
+    },
+  },
+})).mount("#player");
+```
+
+`protectionData` is typed as [`ProtectionDataSet`](https://cdn.dashjs.org/latest/jsdoc/module-ProtectionController.html) from `dashjs`, so each entry can also carry `withCredentials`, `httpTimeout`, `serverCertificate`, and more.
+
+### HLS – Widevine / PlayReady / FairPlay
+
+Pass `drmSystems` to `hlsPlugin`. Each key is a key system string and the value is a [`DRMSystemConfiguration`](https://github.com/video-dev/hls.js/blob/master/docs/API.md#drmsystems) from `hls.js`. Setting `drmSystems` automatically enables EME.
+
+```ts
+import { createPlayer } from "@another-player/core";
+import { hlsPlugin } from "@another-player/core/plugins";
+
+const player = createPlayer({
+  src: "https://example.com/stream.m3u8",
+}).use(hlsPlugin({
+  drmSystems: {
+    "com.widevine.alpha": {
+      licenseUrl: "https://license.example.com/widevine",
+    },
+    "com.apple.fps": {
+      licenseUrl: "https://license.example.com/fairplay",
+      serverCertificateUrl: "https://license.example.com/fairplay/cert",
+    },
+  },
+})).mount("#player");
+```
+
+You can also set `emeEnabled: true` explicitly without providing `drmSystems` if you prefer to configure EME through `hlsConfig`.
 
 ## Tech Stack
 
