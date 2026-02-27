@@ -133,6 +133,24 @@ describe('DASH Plugin', () => {
   });
 
   describe('DASH source handling', () => {
+    it('should activate for DASH sources when using bind()', async () => {
+      const element = document.createElement('another-player') as HTMLElement & { src: string };
+      element.setAttribute('src', 'https://example.com/stream.mpd');
+      container.appendChild(element);
+
+      const player = createPlayer({ src: 'https://example.com/stream.mpd' });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      player.use(dashPlugin()).bind(element as any);
+
+      // Wait for async plugin hooks
+      await new Promise((resolve) => { setTimeout(resolve, 50); });
+
+      // The dash.js mock should have been used via bind()
+      const dashjs = await import('dashjs');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((dashjs as any).mockDashPlayer.initialize).toHaveBeenCalled();
+    });
+
     it('should not activate for non-DASH sources', async () => {
       const player = createPlayer({ src: 'https://example.com/video.mp4' });
       player.use(dashPlugin()).mount(container);
