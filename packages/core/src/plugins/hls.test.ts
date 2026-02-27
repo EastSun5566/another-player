@@ -28,6 +28,8 @@ vi.mock('hls.js', () => {
     recoverMediaError: vi.fn(),
   };
 
+  const lastConfig: { value: Record<string, unknown> } = { value: {} };
+
   class MockHls {
     static isSupported = vi.fn(() => true);
 
@@ -42,6 +44,8 @@ vi.mock('hls.js', () => {
       MEDIA_ERROR: 'mediaError',
       OTHER_ERROR: 'otherError',
     };
+
+    static getLastConfig = () => lastConfig.value;
 
     config: Record<string, unknown>;
 
@@ -67,6 +71,7 @@ vi.mock('hls.js', () => {
 
     constructor(config: Record<string, unknown> = {}) {
       this.config = config;
+      lastConfig.value = config;
     }
   }
 
@@ -265,6 +270,96 @@ describe('HLS Plugin', () => {
 
       // Player should be destroyed
       expect(player.element).toBeUndefined();
+    });
+  });
+
+  describe('DRM support', () => {
+    const mockSetupHlsEnv = () => {
+      const originalCanPlayType = HTMLVideoElement.prototype.canPlayType;
+      HTMLVideoElement.prototype.canPlayType = vi.fn(
+        () => '' as CanPlayTypeResult,
+      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (globalThis as any).MediaSource = { isTypeSupported: () => true };
+      return () => {
+        HTMLVideoElement.prototype.canPlayType = originalCanPlayType;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        delete (globalThis as any).MediaSource;
+      };
+    };
+
+    it('should accept drmSystems option', () => {
+      const drmSystems = {
+        'com.widevine.alpha': { licenseUrl: 'https://license.example.com/widevine' },
+        'com.microsoft.playready': { licenseUrl: 'https://license.example.com/playready' },
+      };
+      const plugin = hlsPlugin({ drmSystems });
+      expect(plugin.options?.drmSystems).toEqual(drmSystems);
+    });
+
+    it('should accept emeEnabled option', () => {
+      const plugin = hlsPlugin({ emeEnabled: true });
+      expect(plugin.options?.emeEnabled).toBe(true);
+    });
+
+    it('should default emeEnabled to true when drmSystems is provided', async () => {
+      const restore = mockSetupHlsEnv();
+
+      const drmSystems = {
+        'com.widevine.alpha': { licenseUrl: 'https://license.example.com/widevine' },
+      };
+      const player = createPlayer({ src: 'https://example.com/stream.m3u8' });
+      player.use(hlsPlugin({ drmSystems })).mount(container);
+
+      await new Promise((resolve) => { setTimeout(resolve, 50); });
+      restore();
+
+      const hlsjs = await import('hls.js');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const lastConfig = (hlsjs.default as any).getLastConfig();
+      expect(lastConfig.emeEnabled).toBe(true);
+      expect(lastConfig.drmSystems).toEqual(drmSystems);
+
+      player.destroy();
+    });
+
+    it('should pass drmSystems and emeEnabled to HLS.js config', async () => {
+      const restore = mockSetupHlsEnv();
+
+      const drmSystems = {
+        'com.widevine.alpha': { licenseUrl: 'https://license.example.com/widevine' },
+      };
+      const player = createPlayer({ src: 'https://example.com/stream.m3u8' });
+      player.use(hlsPlugin({ drmSystems, emeEnabled: true })).mount(container);
+
+      await new Promise((resolve) => { setTimeout(resolve, 50); });
+      restore();
+
+      const hlsjs = await import('hls.js');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const lastConfig = (hlsjs.default as any).getLastConfig();
+      expect(lastConfig.emeEnabled).toBe(true);
+      expect(lastConfig.drmSystems).toEqual(drmSystems);
+
+      player.destroy();
+    });
+
+    it('should not set emeEnabled when no DRM config is provided', async () => {
+      const restore = mockSetupHlsEnv();
+
+      const player = createPlayer({ src: 'https://example.com/stream.m3u8' });
+      player.use(hlsPlugin()).mount(container);
+
+      await new Promise((resolve) => { setTimeout(resolve, 50); });
+      restore();
+
+      const hlsjs = await import('hls.js');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const lastConfig = (hlsjs.default as any).getLastConfig();
+      expect(lastConfig.emeEnabled).toBe(false);
+      expect(lastConfig.drmSystems).toBeUndefined();
+
+      player.destroy();
     });
   });
 });

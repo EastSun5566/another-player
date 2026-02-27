@@ -38,6 +38,7 @@ vi.mock('dashjs', () => {
     on: vi.fn(),
     off: vi.fn(),
     reset: vi.fn(),
+    setProtectionData: vi.fn(),
   };
 
   return {
@@ -327,6 +328,69 @@ describe('DASH Plugin', () => {
       expect(player.getPlugins()).toHaveLength(2);
       expect(player.getPlugins()[0].name).toBe('hls');
       expect(player.getPlugins()[1].name).toBe('dash');
+    });
+  });
+
+  describe('DRM support', () => {
+    it('should accept protectionData option', () => {
+      const protectionData = {
+        'com.widevine.alpha': { serverURL: 'https://license.example.com/widevine' },
+        'com.microsoft.playready': { serverURL: 'https://license.example.com/playready' },
+      };
+      const plugin = dashPlugin({ protectionData });
+      expect(plugin.options?.protectionData).toEqual(protectionData);
+    });
+
+    it('should call setProtectionData when protectionData is provided', async () => {
+      const protectionData = {
+        'com.widevine.alpha': { serverURL: 'https://license.example.com/widevine' },
+      };
+      const player = createPlayer({ src: 'https://example.com/stream.mpd' });
+      player.use(dashPlugin({ protectionData })).mount(container);
+
+      // Wait for async plugin hooks
+      await new Promise((resolve) => { setTimeout(resolve, 50); });
+
+      const dashjs = await import('dashjs');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((dashjs as any).mockDashPlayer.setProtectionData).toHaveBeenCalledWith(protectionData);
+
+      player.destroy();
+    });
+
+    it('should not call setProtectionData when no protectionData is provided', async () => {
+      const player = createPlayer({ src: 'https://example.com/stream.mpd' });
+      player.use(dashPlugin()).mount(container);
+
+      // Wait for async plugin hooks
+      await new Promise((resolve) => { setTimeout(resolve, 50); });
+
+      const dashjs = await import('dashjs');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((dashjs as any).mockDashPlayer.setProtectionData).not.toHaveBeenCalled();
+
+      player.destroy();
+    });
+
+    it('should support protectionData with request headers', async () => {
+      const protectionData = {
+        'com.widevine.alpha': {
+          serverURL: 'https://license.example.com/widevine',
+          httpRequestHeaders: { Authorization: 'Bearer token' },
+          withCredentials: false,
+        },
+      };
+      const player = createPlayer({ src: 'https://example.com/stream.mpd' });
+      player.use(dashPlugin({ protectionData })).mount(container);
+
+      // Wait for async plugin hooks
+      await new Promise((resolve) => { setTimeout(resolve, 50); });
+
+      const dashjs = await import('dashjs');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((dashjs as any).mockDashPlayer.setProtectionData).toHaveBeenCalledWith(protectionData);
+
+      player.destroy();
     });
   });
 });

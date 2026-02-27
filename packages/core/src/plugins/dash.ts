@@ -1,4 +1,6 @@
-import type { MediaPlayerClass, MediaPlayerSettingClass, Representation } from 'dashjs';
+import type {
+  MediaPlayerClass, MediaPlayerSettingClass, Representation, ProtectionDataSet,
+} from 'dashjs';
 import { definePlugin, type PluginContext } from '../plugin';
 import type { PlayerEventMap } from '../types';
 
@@ -30,6 +32,26 @@ export interface DashPluginOptions {
    * Initial quality index for video. -1 means auto.
    */
   initialVideoQuality?: number;
+  /**
+   * DRM protection data keyed by key system string (e.g. 'com.widevine.alpha').
+   * Each entry specifies the license server URL and optional request headers.
+   *
+   * @example
+   * ```ts
+   * dashPlugin({
+   *   protectionData: {
+   *     'com.widevine.alpha': {
+   *       serverURL: 'https://license.example.com/widevine',
+   *       httpRequestHeaders: { 'Authorization': 'Bearer token' },
+   *     },
+   *     'com.microsoft.playready': {
+   *       serverURL: 'https://license.example.com/playready',
+   *     },
+   *   },
+   * })
+   * ```
+   */
+  protectionData?: ProtectionDataSet;
 }
 
 /** Extended player events for DASH plugin */
@@ -69,6 +91,7 @@ export const dashPlugin = definePlugin<DashPluginOptions>((options = {}) => {
     dashConfig = {},
     enableAdaptiveBitrate = true,
     initialVideoQuality = -1,
+    protectionData,
   } = options;
 
   let dashPlayer: MediaPlayerClass | null = null;
@@ -198,6 +221,13 @@ export const dashPlugin = definePlugin<DashPluginOptions>((options = {}) => {
 
       // Initialize the player
       dashPlayer.initialize(videoElement, src, false);
+
+      // Apply DRM protection data if provided.
+      // Must be called after initialize() but before playback begins,
+      // so dash.js can configure the protection system before loading content.
+      if (protectionData) {
+        dashPlayer.setProtectionData(protectionData);
+      }
 
       // Set up event listeners
       dashPlayer.on('manifestLoaded', () => {
