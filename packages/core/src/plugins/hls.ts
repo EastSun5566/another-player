@@ -1,4 +1,5 @@
 import type Hls from 'hls.js';
+import type { DRMSystemsConfiguration } from 'hls.js';
 import { definePlugin, type PluginContext } from '../plugin';
 import type { PlayerEventMap } from '../types';
 
@@ -28,6 +29,26 @@ export interface HlsPluginOptions {
    * Initial quality level index. -1 means auto.
    */
   startLevel?: number;
+  /**
+   * DRM system configurations keyed by key system string (e.g. 'com.widevine.alpha').
+   * Providing this option automatically enables EME (emeEnabled: true).
+   *
+   * @example
+   * ```ts
+   * hlsPlugin({
+   *   drmSystems: {
+   *     'com.widevine.alpha': { licenseUrl: 'https://license.example.com/widevine' },
+   *     'com.microsoft.playready': { licenseUrl: 'https://license.example.com/playready' },
+   *   },
+   * })
+   * ```
+   */
+  drmSystems?: DRMSystemsConfiguration;
+  /**
+   * Explicitly enable or disable EME (Encrypted Media Extensions) for DRM.
+   * Defaults to true when drmSystems is provided, false otherwise.
+   */
+  emeEnabled?: boolean;
 }
 
 /** Extended player events for HLS plugin */
@@ -75,6 +96,8 @@ export const hlsPlugin = definePlugin<HlsPluginOptions>((options = {}) => {
     hlsConfig = {},
     enableAdaptiveBitrate = true,
     startLevel = -1,
+    drmSystems,
+    emeEnabled = drmSystems !== undefined,
   } = options;
 
   let hlsInstance: Hls | null = null;
@@ -162,6 +185,8 @@ export const hlsPlugin = definePlugin<HlsPluginOptions>((options = {}) => {
         ...hlsConfig,
         startLevel: enableAdaptiveBitrate ? startLevel : 0,
         autoStartLoad: true,
+        emeEnabled,
+        ...(drmSystems !== undefined && { drmSystems }),
       });
 
       // Attach to video element
