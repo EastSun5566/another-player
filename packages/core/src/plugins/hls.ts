@@ -102,11 +102,14 @@ export const hlsPlugin = definePlugin<HlsPluginOptions>((options = {}) => {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rawHlsConfig = hlsConfig as any;
-  const emeEnabled = explicitEmeEnabled !== undefined
-    ? explicitEmeEnabled
-    : rawHlsConfig.emeEnabled !== undefined
-      ? rawHlsConfig.emeEnabled
-      : drmSystems !== undefined || rawHlsConfig.drmSystems !== undefined;
+  let emeEnabled: boolean;
+  if (explicitEmeEnabled !== undefined) {
+    emeEnabled = explicitEmeEnabled;
+  } else if (rawHlsConfig.emeEnabled !== undefined) {
+    emeEnabled = rawHlsConfig.emeEnabled;
+  } else {
+    emeEnabled = drmSystems !== undefined || rawHlsConfig.drmSystems !== undefined;
+  }
 
   let hlsInstance: Hls | null = null;
 
