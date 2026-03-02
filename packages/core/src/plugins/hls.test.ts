@@ -280,11 +280,13 @@ describe('HLS Plugin', () => {
         () => '' as CanPlayTypeResult,
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const originalMediaSource = (globalThis as any).MediaSource;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (globalThis as any).MediaSource = { isTypeSupported: () => true };
       return () => {
         HTMLVideoElement.prototype.canPlayType = originalCanPlayType;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        delete (globalThis as any).MediaSource;
+        (globalThis as any).MediaSource = originalMediaSource;
       };
     };
 
@@ -358,6 +360,46 @@ describe('HLS Plugin', () => {
       const lastConfig = (hlsjs.default as any).getLastConfig();
       expect(lastConfig.emeEnabled).toBe(false);
       expect(lastConfig.drmSystems).toBeUndefined();
+
+      player.destroy();
+    });
+
+    it('should derive emeEnabled from hlsConfig.drmSystems when no top-level drmSystems', async () => {
+      const restore = mockSetupHlsEnv();
+
+      const drmSystems = {
+        'com.widevine.alpha': { licenseUrl: 'https://license.example.com/widevine' },
+      };
+      const player = createPlayer({ src: 'https://example.com/stream.m3u8' });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      player.use(hlsPlugin({ hlsConfig: { drmSystems } as any })).mount(container);
+
+      await new Promise((resolve) => { setTimeout(resolve, 50); });
+      restore();
+
+      const hlsjs = await import('hls.js');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const lastConfig = (hlsjs.default as any).getLastConfig();
+      expect(lastConfig.emeEnabled).toBe(true);
+      expect(lastConfig.drmSystems).toEqual(drmSystems);
+
+      player.destroy();
+    });
+
+    it('should respect hlsConfig.emeEnabled when emeEnabled is not explicitly provided', async () => {
+      const restore = mockSetupHlsEnv();
+
+      const player = createPlayer({ src: 'https://example.com/stream.m3u8' });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      player.use(hlsPlugin({ hlsConfig: { emeEnabled: true } as any })).mount(container);
+
+      await new Promise((resolve) => { setTimeout(resolve, 50); });
+      restore();
+
+      const hlsjs = await import('hls.js');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const lastConfig = (hlsjs.default as any).getLastConfig();
+      expect(lastConfig.emeEnabled).toBe(true);
 
       player.destroy();
     });

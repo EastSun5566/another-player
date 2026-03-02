@@ -97,8 +97,16 @@ export const hlsPlugin = definePlugin<HlsPluginOptions>((options = {}) => {
     enableAdaptiveBitrate = true,
     startLevel = -1,
     drmSystems,
-    emeEnabled = drmSystems !== undefined,
+    emeEnabled: explicitEmeEnabled,
   } = options;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawHlsConfig = hlsConfig as any;
+  const emeEnabled = explicitEmeEnabled !== undefined
+    ? explicitEmeEnabled
+    : rawHlsConfig.emeEnabled !== undefined
+      ? rawHlsConfig.emeEnabled
+      : drmSystems !== undefined || rawHlsConfig.drmSystems !== undefined;
 
   let hlsInstance: Hls | null = null;
 
