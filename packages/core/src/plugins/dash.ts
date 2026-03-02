@@ -219,15 +219,14 @@ export const dashPlugin = definePlugin<DashPluginOptions>((options = {}) => {
         });
       }
 
-      // Initialize the player
-      dashPlayer.initialize(videoElement, src, false);
-
-      // Apply DRM protection data if provided.
-      // Must be called after initialize() but before playback begins,
-      // so dash.js can configure the protection system before loading content.
+      // Apply DRM protection data before initialization so dash.js can configure
+      // the protection system before loading content.
       if (protectionData) {
         dashPlayer.setProtectionData(protectionData);
       }
+
+      // Initialize the player
+      dashPlayer.initialize(videoElement, src, false);
 
       // Set up event listeners
       dashPlayer.on('manifestLoaded', () => {

@@ -279,14 +279,20 @@ describe('HLS Plugin', () => {
       HTMLVideoElement.prototype.canPlayType = vi.fn(
         () => '' as CanPlayTypeResult,
       );
+      const hadMediaSource = 'MediaSource' in globalThis;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const originalMediaSource = (globalThis as any).MediaSource;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (globalThis as any).MediaSource = { isTypeSupported: () => true };
       return () => {
         HTMLVideoElement.prototype.canPlayType = originalCanPlayType;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (globalThis as any).MediaSource = originalMediaSource;
+        if (hadMediaSource) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (globalThis as any).MediaSource = originalMediaSource;
+        } else {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          delete (globalThis as any).MediaSource;
+        }
       };
     };
 
@@ -307,101 +313,116 @@ describe('HLS Plugin', () => {
     it('should default emeEnabled to true when drmSystems is provided', async () => {
       const restore = mockSetupHlsEnv();
 
-      const drmSystems = {
-        'com.widevine.alpha': { licenseUrl: 'https://license.example.com/widevine' },
-      };
-      const player = createPlayer({ src: 'https://example.com/stream.m3u8' });
-      player.use(hlsPlugin({ drmSystems })).mount(container);
+      try {
+        const drmSystems = {
+          'com.widevine.alpha': { licenseUrl: 'https://license.example.com/widevine' },
+        };
+        const player = createPlayer({ src: 'https://example.com/stream.m3u8' });
+        player.use(hlsPlugin({ drmSystems })).mount(container);
 
-      await new Promise((resolve) => { setTimeout(resolve, 50); });
-      restore();
+        await new Promise((resolve) => { setTimeout(resolve, 50); });
 
-      const hlsjs = await import('hls.js');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const lastConfig = (hlsjs.default as any).getLastConfig();
-      expect(lastConfig.emeEnabled).toBe(true);
-      expect(lastConfig.drmSystems).toEqual(drmSystems);
+        const hlsjs = await import('hls.js');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const lastConfig = (hlsjs.default as any).getLastConfig();
+        expect(lastConfig.emeEnabled).toBe(true);
+        expect(lastConfig.drmSystems).toEqual(drmSystems);
 
-      player.destroy();
+        player.destroy();
+      } finally {
+        restore();
+      }
     });
 
     it('should pass drmSystems and emeEnabled to HLS.js config', async () => {
       const restore = mockSetupHlsEnv();
 
-      const drmSystems = {
-        'com.widevine.alpha': { licenseUrl: 'https://license.example.com/widevine' },
-      };
-      const player = createPlayer({ src: 'https://example.com/stream.m3u8' });
-      player.use(hlsPlugin({ drmSystems, emeEnabled: true })).mount(container);
+      try {
+        const drmSystems = {
+          'com.widevine.alpha': { licenseUrl: 'https://license.example.com/widevine' },
+        };
+        const player = createPlayer({ src: 'https://example.com/stream.m3u8' });
+        player.use(hlsPlugin({ drmSystems, emeEnabled: true })).mount(container);
 
-      await new Promise((resolve) => { setTimeout(resolve, 50); });
-      restore();
+        await new Promise((resolve) => { setTimeout(resolve, 50); });
 
-      const hlsjs = await import('hls.js');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const lastConfig = (hlsjs.default as any).getLastConfig();
-      expect(lastConfig.emeEnabled).toBe(true);
-      expect(lastConfig.drmSystems).toEqual(drmSystems);
+        const hlsjs = await import('hls.js');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const lastConfig = (hlsjs.default as any).getLastConfig();
+        expect(lastConfig.emeEnabled).toBe(true);
+        expect(lastConfig.drmSystems).toEqual(drmSystems);
 
-      player.destroy();
+        player.destroy();
+      } finally {
+        restore();
+      }
     });
 
     it('should not set emeEnabled when no DRM config is provided', async () => {
       const restore = mockSetupHlsEnv();
 
-      const player = createPlayer({ src: 'https://example.com/stream.m3u8' });
-      player.use(hlsPlugin()).mount(container);
+      try {
+        const player = createPlayer({ src: 'https://example.com/stream.m3u8' });
+        player.use(hlsPlugin()).mount(container);
 
-      await new Promise((resolve) => { setTimeout(resolve, 50); });
-      restore();
+        await new Promise((resolve) => { setTimeout(resolve, 50); });
 
-      const hlsjs = await import('hls.js');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const lastConfig = (hlsjs.default as any).getLastConfig();
-      expect(lastConfig.emeEnabled).toBe(false);
-      expect(lastConfig.drmSystems).toBeUndefined();
+        const hlsjs = await import('hls.js');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const lastConfig = (hlsjs.default as any).getLastConfig();
+        expect(lastConfig.emeEnabled).toBe(false);
+        expect(lastConfig.drmSystems).toBeUndefined();
 
-      player.destroy();
+        player.destroy();
+      } finally {
+        restore();
+      }
     });
 
     it('should derive emeEnabled from hlsConfig.drmSystems when no top-level drmSystems', async () => {
       const restore = mockSetupHlsEnv();
 
-      const drmSystems = {
-        'com.widevine.alpha': { licenseUrl: 'https://license.example.com/widevine' },
-      };
-      const player = createPlayer({ src: 'https://example.com/stream.m3u8' });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      player.use(hlsPlugin({ hlsConfig: { drmSystems } as any })).mount(container);
+      try {
+        const drmSystems = {
+          'com.widevine.alpha': { licenseUrl: 'https://license.example.com/widevine' },
+        };
+        const player = createPlayer({ src: 'https://example.com/stream.m3u8' });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        player.use(hlsPlugin({ hlsConfig: { drmSystems } as any })).mount(container);
 
-      await new Promise((resolve) => { setTimeout(resolve, 50); });
-      restore();
+        await new Promise((resolve) => { setTimeout(resolve, 50); });
 
-      const hlsjs = await import('hls.js');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const lastConfig = (hlsjs.default as any).getLastConfig();
-      expect(lastConfig.emeEnabled).toBe(true);
-      expect(lastConfig.drmSystems).toEqual(drmSystems);
+        const hlsjs = await import('hls.js');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const lastConfig = (hlsjs.default as any).getLastConfig();
+        expect(lastConfig.emeEnabled).toBe(true);
+        expect(lastConfig.drmSystems).toEqual(drmSystems);
 
-      player.destroy();
+        player.destroy();
+      } finally {
+        restore();
+      }
     });
 
     it('should respect hlsConfig.emeEnabled when emeEnabled is not explicitly provided', async () => {
       const restore = mockSetupHlsEnv();
 
-      const player = createPlayer({ src: 'https://example.com/stream.m3u8' });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      player.use(hlsPlugin({ hlsConfig: { emeEnabled: true } as any })).mount(container);
+      try {
+        const player = createPlayer({ src: 'https://example.com/stream.m3u8' });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        player.use(hlsPlugin({ hlsConfig: { emeEnabled: true } as any })).mount(container);
 
-      await new Promise((resolve) => { setTimeout(resolve, 50); });
-      restore();
+        await new Promise((resolve) => { setTimeout(resolve, 50); });
 
-      const hlsjs = await import('hls.js');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const lastConfig = (hlsjs.default as any).getLastConfig();
-      expect(lastConfig.emeEnabled).toBe(true);
+        const hlsjs = await import('hls.js');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const lastConfig = (hlsjs.default as any).getLastConfig();
+        expect(lastConfig.emeEnabled).toBe(true);
 
-      player.destroy();
+        player.destroy();
+      } finally {
+        restore();
+      }
     });
   });
 });

@@ -31,7 +31,8 @@ export interface HlsPluginOptions {
   startLevel?: number;
   /**
    * DRM system configurations keyed by key system string (e.g. 'com.widevine.alpha').
-   * Providing this option automatically enables EME (emeEnabled: true).
+   * When provided, EME is automatically enabled unless overridden by the `emeEnabled` option
+   * or `hlsConfig.emeEnabled`.
    *
    * @example
    * ```ts
@@ -46,7 +47,9 @@ export interface HlsPluginOptions {
   drmSystems?: DRMSystemsConfiguration;
   /**
    * Explicitly enable or disable EME (Encrypted Media Extensions) for DRM.
-   * Defaults to true when drmSystems is provided, false otherwise.
+   * Takes precedence over `hlsConfig.emeEnabled` and the automatic derivation from `drmSystems`.
+   * When not set, falls back to `hlsConfig.emeEnabled`, then defaults to `true` when
+   * `drmSystems` (or `hlsConfig.drmSystems`) is provided, and `false` otherwise.
    */
   emeEnabled?: boolean;
 }
@@ -100,8 +103,13 @@ export const hlsPlugin = definePlugin<HlsPluginOptions>((options = {}) => {
     emeEnabled: explicitEmeEnabled,
   } = options;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rawHlsConfig = hlsConfig as any;
+  // Local type to safely access DRM-related fields that may be present in hlsConfig
+  // even when not part of the official HlsConfig TypeScript type.
+  type HlsConfigWithDrm = {
+    emeEnabled?: boolean;
+    drmSystems?: DRMSystemsConfiguration;
+  };
+  const rawHlsConfig = hlsConfig as HlsConfigWithDrm;
   let emeEnabled: boolean;
   if (explicitEmeEnabled !== undefined) {
     emeEnabled = explicitEmeEnabled;
