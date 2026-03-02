@@ -13,7 +13,7 @@ const DASH_DRM_URL = 'https://media.axprod.net/TestVectors/v7-MultiDRM-SingleKey
 const WIDEVINE_LICENSE_URL = 'https://drm-widevine-licensing.axtest.net/AcquireLicense';
 const PLAYREADY_LICENSE_URL = 'https://drm-playready-licensing.axtest.net/AcquireLicense';
 
-// HLS FairPlay DRM test stream (Axinom test content)
+// HLS Widevine (multi-DRM) test stream (Axinom test content)
 const HLS_DRM_URL = 'https://media.axprod.net/TestVectors/v7-MultiDRM-SingleKey/Manifest.m3u8';
 const WIDEVINE_HLS_LICENSE_URL = 'https://drm-widevine-licensing.axtest.net/AcquireLicense';
 
