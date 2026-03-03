@@ -205,7 +205,7 @@ export const hlsPlugin = definePlugin<HlsPluginOptions>((options = {}) => {
         startLevel: enableAdaptiveBitrate ? startLevel : 0,
         autoStartLoad: true,
         emeEnabled,
-        ...(drmSystems !== undefined && { drmSystems }),
+        ...(drmSystems !== undefined ? { drmSystems } : {}),
       });
 
       // Attach to video element

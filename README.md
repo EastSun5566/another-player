@@ -96,7 +96,7 @@ const player = createPlayer({
 
 Pass `drmSystems` to `hlsPlugin`. Each key is a key system string and the value is a [`DRMSystemConfiguration`](https://github.com/video-dev/hls.js/blob/master/docs/API.md#drmsystems) from `hls.js`. Setting `drmSystems` automatically enables EME.
 
-> **Note:** This DRM path requires HLS.js to be used as the playback engine (Media Source Extensions must be available). On Safari, the plugin normally falls back to the browser's native HLS support, which bypasses HLS.js and ignores `drmSystems`/`emeEnabled`. To use EME-based DRM (e.g. Widevine or PlayReady) on Safari or other environments where native HLS is detected, force the HLS.js path by setting `hlsConfig` options appropriately, or use a browser that does not natively support HLS.
+> **Note:** This DRM path requires HLS.js to be used as the playback engine (Media Source Extensions must be available). On Safari and other environments where native HLS is available, the current HLS plugin always falls back to the browser's native HLS support when `videoElement.canPlayType('application/vnd.apple.mpegurl')` is truthy, which bypasses HLS.js and ignores `drmSystems`/`emeEnabled`. There is currently no plugin option to override this behavior and force HLS.js when native HLS is detected, so EME-based DRM (e.g. Widevine or PlayReady) is only available in environments where HLS.js is actually used (typically browsers without native HLS support).
 
 ```ts
 import { createPlayer } from "@another-player/core";

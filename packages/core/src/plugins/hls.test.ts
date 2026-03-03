@@ -358,7 +358,7 @@ describe('HLS Plugin', () => {
       }
     });
 
-    it('should not set emeEnabled when no DRM config is provided', async () => {
+    it('should set emeEnabled to false when no DRM config is provided', async () => {
       const restore = mockSetupHlsEnv();
 
       try {
