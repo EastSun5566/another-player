@@ -1,4 +1,5 @@
 import type Hls from 'hls.js';
+import type { DRMSystemsConfiguration } from 'hls.js';
 import { definePlugin, type PluginContext } from '../plugin';
 import type { PlayerEventMap } from '../types';
 
@@ -28,6 +29,29 @@ export interface HlsPluginOptions {
    * Initial quality level index. -1 means auto.
    */
   startLevel?: number;
+  /**
+   * DRM system configurations keyed by key system string (e.g. 'com.widevine.alpha').
+   * When provided, EME is automatically enabled unless overridden by the `emeEnabled` option
+   * or `hlsConfig.emeEnabled`.
+   *
+   * @example
+   * ```ts
+   * hlsPlugin({
+   *   drmSystems: {
+   *     'com.widevine.alpha': { licenseUrl: 'https://license.example.com/widevine' },
+   *     'com.microsoft.playready': { licenseUrl: 'https://license.example.com/playready' },
+   *   },
+   * })
+   * ```
+   */
+  drmSystems?: DRMSystemsConfiguration;
+  /**
+   * Explicitly enable or disable EME (Encrypted Media Extensions) for DRM.
+   * Takes precedence over `hlsConfig.emeEnabled` and the automatic derivation from `drmSystems`.
+   * When not set, falls back to `hlsConfig.emeEnabled`, then defaults to `true` when
+   * `drmSystems` (or `hlsConfig.drmSystems`) is provided, and `false` otherwise.
+   */
+  emeEnabled?: boolean;
 }
 
 /** Extended player events for HLS plugin */
@@ -75,7 +99,25 @@ export const hlsPlugin = definePlugin<HlsPluginOptions>((options = {}) => {
     hlsConfig = {},
     enableAdaptiveBitrate = true,
     startLevel = -1,
+    drmSystems,
+    emeEnabled: explicitEmeEnabled,
   } = options;
+
+  // Local type to safely access DRM-related fields that may be present in hlsConfig
+  // even when not part of the official HlsConfig TypeScript type.
+  type HlsConfigWithDrm = {
+    emeEnabled?: boolean;
+    drmSystems?: DRMSystemsConfiguration;
+  };
+  const rawHlsConfig = hlsConfig as HlsConfigWithDrm;
+  let emeEnabled: boolean;
+  if (explicitEmeEnabled !== undefined) {
+    emeEnabled = explicitEmeEnabled;
+  } else if (rawHlsConfig.emeEnabled !== undefined) {
+    emeEnabled = rawHlsConfig.emeEnabled;
+  } else {
+    emeEnabled = drmSystems !== undefined || rawHlsConfig.drmSystems !== undefined;
+  }
 
   let hlsInstance: Hls | null = null;
 
@@ -162,6 +204,8 @@ export const hlsPlugin = definePlugin<HlsPluginOptions>((options = {}) => {
         ...hlsConfig,
         startLevel: enableAdaptiveBitrate ? startLevel : 0,
         autoStartLoad: true,
+        emeEnabled,
+        ...(drmSystems !== undefined ? { drmSystems } : {}),
       });
 
       // Attach to video element
