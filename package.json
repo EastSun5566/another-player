@@ -1,7 +1,6 @@
 {
   "name": "another-player-monorepo",
-  "version": "0.1.0",
-  "description": "Another player monorepo",
+  "version": "0.0.0",
   "license": "MIT",
   "scripts": {
     "build:core": "pnpm --filter core build",
@@ -10,9 +9,12 @@
     "lint": "eslint --cache --fix --ignore-path .gitignore --ext .js,.ts .",
     "test": "pnpm --filter core test",
     "test:watch": "pnpm --filter core test:watch",
-    "release": "commit-and-tag-version --packageFiles packages/core/package.json --bumpFiles packages/core/package.json"
+    "release": "commit-and-tag-version --packageFiles packages/core/package.json --bumpFiles packages/core/package.json && git push --follow-tags"
   },
   "private": true,
+  "engines": {
+    "node": ">=22"
+  },
   "devDependencies": {
     "@nx/js": "^20.8.3",
     "@nx/workspace": "^20.8.3",
