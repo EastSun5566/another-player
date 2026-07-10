@@ -8,15 +8,20 @@
     "dev:playground": "pnpm --filter playground dev",
     "lint": "eslint --cache --fix --ignore-path .gitignore --ext .js,.ts .",
     "test": "pnpm --filter core test",
-    "test:watch": "pnpm --filter core test:watch"
+    "test:watch": "pnpm --filter core test:watch",
+    "release": "commit-and-tag-version --packageFiles packages/core/package.json && git push --follow-tags"
   },
   "private": true,
+  "engines": {
+    "node": ">=22"
+  },
   "devDependencies": {
     "@nx/js": "^20.8.3",
     "@nx/workspace": "^20.8.3",
     "@types/node": "^22.15.32",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
+    "commit-and-tag-version": "^12.7.3",
     "eslint": "^8.57.1",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-config-airbnb-typescript": "^18.0.0",
