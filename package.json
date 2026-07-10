@@ -1,6 +1,7 @@
 {
   "name": "another-player-monorepo",
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "description": "Another player monorepo",
   "license": "MIT",
   "scripts": {
     "build:core": "pnpm --filter core build",
