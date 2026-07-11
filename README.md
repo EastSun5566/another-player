@@ -1,75 +1,83 @@
-# Another Player (WIP)
+# Another Player
 
-> just another player with good DX
+> A modern, headless, standard-compliant media player with a rich plugin architecture and great Developer Experience (DX).
 
-## Design Goals
+Another Player is built on top of web standards and modern web components. It provides a flexible, robust, and extensible framework for media playback, designed from the ground up to be headless and easily customisable.
 
-- Web component base. should be close to web standards.
-- Should be "Headless" so that can be fully customized & easily integrates with frameworks like `Tailwind` and `Windi`
-- APIs similar to those in `Vue.js`
+---
 
-  ```ts
-  import { createPlayer } from "@another-player/core";
+## Key Features
 
-  const player = createPlayer({
-    src: "https://big-buck-bunny.mp4",
-  }).mount("#player");
-  ```
+- **Standard-Compliant Web Components**: Leverages native web technologies, ensuring robust performance and compatibility with modern web standards.
+- **Headless & Customisable**: Decouples logic from UI. Easily integrates with styling frameworks like `Tailwind CSS`, `Windi CSS`, or vanilla CSS to design custom player skins.
+- **Vue-like API**: Simple and intuitive lifecycle/setup API that feels instantly familiar.
+- **Extensible Plugin System**: Features a lifecycle-hook-based plugin architecture inspired by `Vite` and `Rollup`, allowing developers to extend behavior seamlessly.
+- **Mainstream Format Support**: Play DASH and HLS streams effortlessly using dedicated, official plugins.
+- **Comprehensive Multi-DRM**: Built-in support for Widevine, PlayReady, and FairPlay (including recent FairPlay EME implementation in HLS.js).
 
-- Rich plugin system with APIs similar to those in [`Vite`](https://vitejs.dev/guide/api-plugin.html#plugin-api) and [`Rollup`](https://rollupjs.org/guide/en/#plugin-development)
+---
 
-  ```ts
-  import { createPlayer, definePlugin } from "@another-player/core";
+## Quick Start
 
-  const myPlugin = definePlugin(options);
+### Installation
 
-  const player = createPlayer({
-    src: "https://big-buck-bunny.mp4",
-  }).use([
-    myPlugin(),
-  ]).mount("#player");
-  ```
+Install the core package using your preferred package manager:
 
-- Support for mainstream streaming formats such as DASH and HLS through the use of plugins
-- Support for Multi-DRM
-  - FairPlay as recently implemented in [`HLS.js`](https://github.com/video-dev/hls.js/pull/4930)
+```bash
+# Using npm
+npm install @another-player/core
 
-## Roadmap
+# Using pnpm
+pnpm add @another-player/core
 
-### Phase 1: Core Foundation
+# Using yarn
+yarn add @another-player/core
+```
 
-- [x] Basic player implementation with web component
-- [x] `createPlayer` API with mount functionality
-- [x] Basic media playback controls (play, pause, seek, volume)
-- [x] Event system for player state changes
+### Basic Usage
 
-### Phase 2: Plugin System
+Instantiate and mount the player with a simple source:
 
-- [x] `definePlugin` API implementation
-- [x] Plugin lifecycle hooks
-- [x] Plugin options and configuration
-- [x] Built-in plugins architecture
+```ts
+import { createPlayer } from "@another-player/core";
 
-### Phase 3: Streaming Support
+const player = createPlayer({
+  src: "https://big-buck-bunny.mp4",
+}).mount("#player");
+```
 
-- [x] HLS plugin with [`HLS.js`](https://github.com/video-dev/hls.js) integration
-- [x] DASH plugin with [`dash.js`](https://github.com/Dash-Industry-Forum/dash.js) integration
-- [x] Adaptive bitrate streaming support
+### Using Plugins
 
-### Phase 4: DRM Support
+Extend the player's core capabilities by using plugins. The example below demonstrates creating and attaching a custom plugin:
 
-- [x] Widevine DRM integration
-- [x] FairPlay DRM integration
-- [x] PlayReady DRM integration
-- [x] Multi-DRM unified API
+```ts
+import { createPlayer, definePlugin } from "@another-player/core";
+
+// Define a custom plugin
+const myPlugin = definePlugin((options) => ({
+  name: "my-plugin",
+  install(context) {
+    console.log("Plugin installed on player", context);
+  },
+}));
+
+// Instantiate player and attach the plugin
+const player = createPlayer({
+  src: "https://big-buck-bunny.mp4",
+}).use([
+  myPlugin(),
+]).mount("#player");
+```
+
+---
 
 ## DRM Support
 
-DRM-protected streams are supported via the built-in HLS and DASH plugins.
+Another Player supports DRM-protected streams via official, built-in plugins for **HLS** and **DASH**.
 
-### DASH – Widevine / PlayReady
+### DASH – Widevine & PlayReady
 
-Pass `protectionData` to `dashPlugin`. Each key is a [key system string](https://dashif.org/dash.js/pages/usage/drm.html) and the value describes the license server and optional headers.
+To configure DRM for DASH playback, pass the `protectionData` option to `dashPlugin`. Each key is a standard key system string, and the value contains the license server configuration and optional request headers.
 
 ```ts
 import { createPlayer } from "@another-player/core";
@@ -77,26 +85,26 @@ import { dashPlugin } from "@another-player/core/plugins";
 
 const player = createPlayer({
   src: "https://example.com/stream.mpd",
-}).use(dashPlugin({
-  protectionData: {
-    "com.widevine.alpha": {
-      serverURL: "https://license.example.com/widevine",
-      httpRequestHeaders: { Authorization: "Bearer <token>" },
+}).use([
+  dashPlugin({
+    protectionData: {
+      "com.widevine.alpha": {
+        serverURL: "https://license.example.com/widevine",
+        httpRequestHeaders: { Authorization: "Bearer <token>" },
+      },
+      "com.microsoft.playready": {
+        serverURL: "https://license.example.com/playready",
+      },
     },
-    "com.microsoft.playready": {
-      serverURL: "https://license.example.com/playready",
-    },
-  },
-})).mount("#player");
+  }),
+]).mount("#player");
 ```
 
-`protectionData` is typed as [`ProtectionDataSet`](https://cdn.dashjs.org/latest/jsdoc/module-ProtectionController.html) from `dashjs`, so each entry can also carry `withCredentials`, `httpTimeout`, `serverCertificate`, and more.
+> **Note:** `protectionData` is typed as [`ProtectionDataSet`](https://cdn.dashjs.org/latest/jsdoc/module-ProtectionController.html) from `dashjs`. Each entry can also carry other parameters such as `withCredentials`, `httpTimeout`, `serverCertificate`, etc.
 
-### HLS – Widevine / PlayReady / FairPlay
+### HLS – Widevine, PlayReady, & FairPlay
 
-Pass `drmSystems` to `hlsPlugin`. Each key is a key system string and the value is a [`DRMSystemConfiguration`](https://github.com/video-dev/hls.js/blob/master/docs/API.md#drmsystems) from `hls.js`. Setting `drmSystems` automatically enables EME.
-
-> **Note:** This DRM path requires HLS.js to be used as the playback engine (Media Source Extensions must be available). On Safari and other environments where native HLS is available, the current HLS plugin always falls back to the browser's native HLS support when `videoElement.canPlayType('application/vnd.apple.mpegurl')` is truthy, which bypasses HLS.js and ignores `drmSystems`/`emeEnabled`. There is currently no plugin option to override this behavior and force HLS.js when native HLS is detected, so EME-based DRM (e.g. Widevine or PlayReady) is only available in environments where HLS.js is actually used (typically browsers without native HLS support).
+To configure DRM for HLS playback, pass the `drmSystems` option to `hlsPlugin`. Setting `drmSystems` automatically configures Encrypted Media Extensions (EME).
 
 ```ts
 import { createPlayer } from "@another-player/core";
@@ -104,24 +112,33 @@ import { hlsPlugin } from "@another-player/core/plugins";
 
 const player = createPlayer({
   src: "https://example.com/stream.m3u8",
-}).use(hlsPlugin({
-  drmSystems: {
-    "com.widevine.alpha": {
-      licenseUrl: "https://license.example.com/widevine",
+}).use([
+  hlsPlugin({
+    drmSystems: {
+      "com.widevine.alpha": {
+        licenseUrl: "https://license.example.com/widevine",
+      },
+      "com.apple.fps": {
+        licenseUrl: "https://license.example.com/fairplay",
+        serverCertificateUrl: "https://license.example.com/fairplay/cert",
+      },
     },
-    "com.apple.fps": {
-      licenseUrl: "https://license.example.com/fairplay",
-      serverCertificateUrl: "https://license.example.com/fairplay/cert",
-    },
-  },
-})).mount("#player");
+  }),
+]).mount("#player");
 ```
 
-You can also set `emeEnabled: true` explicitly without providing `drmSystems` if you prefer to configure EME through `hlsConfig`.
+> **Safari & Native Playback Compatibility:**
+> This DRM integration relies on HLS.js to serve as the playback engine. Under Safari or environments where native HLS support is natively preferred, the current HLS plugin defaults back to the browser's native HLS support when `videoElement.canPlayType('application/vnd.apple.mpegurl')` evaluates to true, bypassing HLS.js and ignoring the custom `drmSystems` or `emeEnabled` options. Therefore, EME-based DRM (e.g. Widevine or PlayReady) is only functional in browsers and environments where HLS.js is actively utilised as the playback engine.
+>
+> If you prefer to configure EME through your custom `hlsConfig`, you may also explicitly enable it by passing `emeEnabled: true` without providing `drmSystems` to the plugin.
 
-## Tech Stack
+---
 
-- `PNPM` as the package manager; run `pnpm i` to install dependencies
-- `NX` as the monorepo workspace; run `pnpm nx graph` to see a diagram of the dependencies of the projects
-- `Typescript` as the language
-- `Vite` as the build tool
+## Tech Stack & Development
+
+This repository is managed as a high-performance monorepo workspace:
+
+- **Package Manager**: [PNPM](https://pnpm.io/) for fast, disk-efficient workspace installs. Run `pnpm i` to install dependencies.
+- **Monorepo Manager**: [NX](https://nx.dev/) to orchestrate builds, runs, and dependencies. Run `pnpm nx graph` to visualize workspace dependencies.
+- **Language**: [TypeScript](https://www.typescriptlang.org/) for type safety and exceptional DX.
+- **Build Tool**: [Vite](https://vite.dev/) for quick development starts and optimized builds.

@@ -353,7 +353,7 @@ describe('DASH Plugin', () => {
 
       const dashjs = await import('dashjs');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mockDashPlayer = (dashjs as any).mockDashPlayer;
+      const { mockDashPlayer } = (dashjs as any);
       expect(mockDashPlayer.setProtectionData).toHaveBeenCalledWith(protectionData);
       expect(
         mockDashPlayer.setProtectionData.mock.invocationCallOrder[0],
