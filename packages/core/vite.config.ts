@@ -10,6 +10,7 @@ const names = name.slice(1).split('/');
 
 export default defineConfig({
   build: {
+    emptyOutDir: true,
     lib: {
       entry,
       name: names[0],
@@ -18,6 +19,7 @@ export default defineConfig({
   },
   plugins: [dts({
     entryRoot: entry,
+    exclude: ['**/*.test.ts'],
   })],
   test: {
     environment: 'jsdom',
