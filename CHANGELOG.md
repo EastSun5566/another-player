@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.1.1](https://github.com/EastSun5566/another-player/compare/v0.1.0...v0.1.1) (2026-07-13)
+
+
+### Bug Fixes
+
+* clean up build process and configure workspace settings ([#18](https://github.com/EastSun5566/another-player/issues/18)) ([f4912ac](https://github.com/EastSun5566/another-player/commit/f4912acfff157b378fc86b2effc4affbf1687667))
+
 ## 0.1.0 (2026-07-10)
 
 
