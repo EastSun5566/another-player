@@ -1,5 +1,10 @@
 # Another Player
 
+[![NPM Version](https://img.shields.io/npm/v/%40another-player/core.svg?style=for-the-badge)](https://www.npmjs.com/package/@another-player/core)
+[![NPM Downloads](https://img.shields.io/npm/dt/%40another-player/core.svg?style=for-the-badge)](https://www.npmjs.com/package/@another-player/core)
+[![Test Status](https://img.shields.io/github/actions/workflow/status/EastSun5566/another-player/ci.yml?style=for-the-badge)](https://github.com/EastSun5566/another-player/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/EastSun5566/another-player.svg?style=for-the-badge)](https://github.com/EastSun5566/another-player/blob/main/LICENSE)
+
 > A modern, headless, standard-compliant media player with a rich plugin architecture.
 
 ---
