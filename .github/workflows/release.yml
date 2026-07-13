@@ -35,4 +35,7 @@ jobs:
         run: pnpm run build:core
 
       - name: Publish to npm
-        run: pnpm --filter core publish --access public --no-git-checks --provenance
+        run: |
+          npm install -g npm@latest
+          cd packages/core
+          npm publish --provenance --access public
