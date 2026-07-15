@@ -244,3 +244,7 @@ pnpm dev
 ## Next
 
 The next product step is a quality-selector UI built on the existing HLS and DASH plugin APIs. Framework adapters remain deferred until the browser contracts have more real-world use.
+
+## License
+
+[MIT](./LICENSE) © Michael Wang
