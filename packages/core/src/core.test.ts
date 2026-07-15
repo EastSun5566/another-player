@@ -226,6 +226,11 @@ describe('createPlayer', () => {
 });
 
 describe('PlayerElement', () => {
+  const createElement = (): PlayerElement => {
+    createPlayer();
+    return document.createElement(DEFAULT_ELEMENT_NAME) as PlayerElement;
+  };
+
   beforeEach(() => {
     document.body.innerHTML = '';
   });
@@ -266,10 +271,172 @@ describe('PlayerElement', () => {
   });
 
   it('should set crossOrigin attribute to anonymous for CORS support', () => {
-    createPlayer();
-    const element = document.createElement(DEFAULT_ELEMENT_NAME) as PlayerElement;
+    const element = createElement();
     document.body.appendChild(element);
 
     expect(element.videoElement.crossOrigin).toBe('anonymous');
+  });
+
+  it.each([
+    ['poster', 'poster.jpg'],
+    ['preload', 'metadata'],
+  ] as const)('should reflect the %s string attribute and property', (name, value) => {
+    const element = createElement();
+    element.setAttribute(name, value);
+
+    expect(element[name]).toBe(value);
+    expect(element.videoElement.getAttribute(name)).toBe(value);
+
+    element[name] = '';
+
+    expect(element.hasAttribute(name)).toBe(false);
+    expect(element.videoElement.hasAttribute(name)).toBe(false);
+  });
+
+  it.each([
+    ['autoplay', 'autoplay'],
+    ['loop', 'loop'],
+    ['playsInline', 'playsinline'],
+  ] as const)('should reflect the %s boolean property with presence semantics', (
+    propertyName,
+    attributeName,
+  ) => {
+    const element = createElement();
+
+    element[propertyName] = true;
+    expect(element.hasAttribute(attributeName)).toBe(true);
+    expect(element.videoElement[propertyName]).toBe(true);
+
+    element[propertyName] = false;
+    expect(element.hasAttribute(attributeName)).toBe(false);
+    expect(element.videoElement[propertyName]).toBe(false);
+  });
+
+  it('should apply declarative muted state without reflecting runtime mute changes', () => {
+    const element = createElement();
+
+    element.muted = true;
+    expect(element.hasAttribute('muted')).toBe(true);
+    expect(element.videoElement.defaultMuted).toBe(true);
+    expect(element.videoElement.muted).toBe(true);
+
+    element.videoElement.muted = false;
+    expect(element.hasAttribute('muted')).toBe(true);
+
+    element.removeAttribute('muted');
+    expect(element.videoElement.defaultMuted).toBe(false);
+    expect(element.videoElement.muted).toBe(false);
+  });
+
+  it('should reflect crossorigin and restore the anonymous default when removed', () => {
+    const element = createElement();
+
+    element.crossOrigin = 'use-credentials';
+    expect(element.getAttribute('crossorigin')).toBe('use-credentials');
+    expect(element.videoElement.crossOrigin).toBe('use-credentials');
+
+    element.crossOrigin = null;
+    expect(element.hasAttribute('crossorigin')).toBe(false);
+    expect(element.crossOrigin).toBe('anonymous');
+    expect(element.videoElement.crossOrigin).toBe('anonymous');
+  });
+
+  it('should expose stable player CSS parts', () => {
+    const element = createElement();
+
+    expect(element.shadowRoot?.querySelector('[part~="container"]')).toBeTruthy();
+    expect(element.shadowRoot?.querySelector('[part~="video"]')).toBe(element.videoElement);
+    expect(element.shadowRoot?.querySelector('[part~="controls"]')).toBeTruthy();
+  });
+
+  it('should clone and update direct captions tracks without duplicates', async () => {
+    const element = createElement();
+    document.body.appendChild(element);
+    const track = document.createElement('track');
+    track.kind = 'captions';
+    track.src = '/captions/en.vtt';
+    track.srclang = 'en';
+    track.label = 'English';
+    track.default = true;
+
+    element.appendChild(track);
+
+    await vi.waitFor(() => {
+      expect(element.videoElement.querySelectorAll('track')).toHaveLength(1);
+    });
+    const clone = element.videoElement.querySelector('track');
+    expect(clone).not.toBe(track);
+    expect(clone?.getAttribute('src')).toBe('/captions/en.vtt');
+    expect(clone?.kind).toBe('captions');
+    expect(clone?.srclang).toBe('en');
+    expect(clone?.label).toBe('English');
+    expect(clone?.default).toBe(true);
+
+    track.label = 'English captions';
+    track.srclang = 'en-US';
+    track.default = false;
+
+    await vi.waitFor(() => {
+      expect(clone?.label).toBe('English captions');
+      expect(clone?.srclang).toBe('en-US');
+      expect(clone?.default).toBe(false);
+      expect(element.videoElement.querySelectorAll('track')).toHaveLength(1);
+    });
+
+    track.removeAttribute('label');
+    track.removeAttribute('srclang');
+    await vi.waitFor(() => {
+      expect(clone?.hasAttribute('label')).toBe(false);
+      expect(clone?.hasAttribute('srclang')).toBe(false);
+    });
+  });
+
+  it('should add, remove, and filter declarative tracks', async () => {
+    const element = createElement();
+    const captions = document.createElement('track');
+    captions.kind = 'captions';
+    const subtitles = document.createElement('track');
+    subtitles.kind = 'subtitles';
+    subtitles.srclang = 'fr';
+    subtitles.label = 'Français';
+    const chapters = document.createElement('track');
+    chapters.kind = 'chapters';
+    const nestedTrack = document.createElement('track');
+    nestedTrack.kind = 'captions';
+    const wrapper = document.createElement('div');
+    wrapper.appendChild(nestedTrack);
+    element.append(captions, subtitles, chapters, wrapper);
+    document.body.appendChild(element);
+
+    expect(element.videoElement.querySelectorAll('track')).toHaveLength(2);
+    expect(
+      element.videoElement.querySelector<HTMLTrackElement>('track[srclang="fr"]')?.label,
+    ).toBe('Français');
+
+    captions.remove();
+    await vi.waitFor(() => {
+      expect(element.videoElement.querySelectorAll('track')).toHaveLength(1);
+    });
+
+    subtitles.kind = 'metadata';
+    await vi.waitFor(() => {
+      expect(element.videoElement.querySelectorAll('track')).toHaveLength(0);
+    });
+  });
+
+  it('should clean up cloned tracks while disconnected and restore them on reconnect', () => {
+    const element = createElement();
+    const track = document.createElement('track');
+    track.kind = 'captions';
+    element.appendChild(track);
+    document.body.appendChild(element);
+
+    expect(element.videoElement.querySelectorAll('track')).toHaveLength(1);
+
+    element.remove();
+    expect(element.videoElement.querySelectorAll('track')).toHaveLength(0);
+
+    document.body.appendChild(element);
+    expect(element.videoElement.querySelectorAll('track')).toHaveLength(1);
   });
 });

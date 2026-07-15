@@ -62,7 +62,9 @@ export class PlayButtonElement extends PlayerControlElement {
 
     this.button = document.createElement('button');
     this.button.type = 'button';
+    this.button.setAttribute('part', 'button');
     this.button.setAttribute('aria-label', 'Play');
+    this.button.setAttribute('aria-pressed', 'false');
     this.button.innerHTML = this.getPlayIcon();
 
     const shadowRoot = this.attachShadow({ mode: 'open' });
@@ -70,13 +72,13 @@ export class PlayButtonElement extends PlayerControlElement {
   }
 
   private getPlayIcon(): string {
-    return `<svg class="icon" aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    return `<svg class="icon" part="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
       <path d="M8 5v14l11-7z"/>
     </svg>`;
   }
 
   private getPauseIcon(): string {
-    return `<svg class="icon" aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    return `<svg class="icon" part="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
       <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
     </svg>`;
   }
@@ -88,9 +90,11 @@ export class PlayButtonElement extends PlayerControlElement {
     if (videoElement.paused) {
       this.button.innerHTML = this.getPlayIcon();
       this.button.setAttribute('aria-label', 'Play');
+      this.button.setAttribute('aria-pressed', 'false');
     } else {
       this.button.innerHTML = this.getPauseIcon();
       this.button.setAttribute('aria-label', 'Pause');
+      this.button.setAttribute('aria-pressed', 'true');
     }
   }
 
@@ -101,6 +105,7 @@ export class PlayButtonElement extends PlayerControlElement {
     this.button.addEventListener('click', this.handleClick);
     videoElement.addEventListener('play', this.handlePlayPause);
     videoElement.addEventListener('pause', this.handlePlayPause);
+    videoElement.addEventListener('ended', this.handlePlayPause);
     this.updateState();
   }
 
@@ -109,6 +114,7 @@ export class PlayButtonElement extends PlayerControlElement {
     this.button.removeEventListener('click', this.handleClick);
     videoElement?.removeEventListener('play', this.handlePlayPause);
     videoElement?.removeEventListener('pause', this.handlePlayPause);
+    videoElement?.removeEventListener('ended', this.handlePlayPause);
   }
 }
 

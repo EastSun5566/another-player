@@ -1,4 +1,5 @@
 import { PlayerControlElement } from './base';
+import { formatTime } from './format-time';
 
 const TIME_DISPLAY_ELEMENT_NAME = 'another-player-time-display';
 
@@ -35,35 +36,19 @@ export class TimeDisplayElement extends PlayerControlElement {
     `;
 
     this.timeSpan = document.createElement('span');
+    this.timeSpan.setAttribute('part', 'time');
     this.timeSpan.textContent = '0:00 / 0:00';
 
     const shadowRoot = this.attachShadow({ mode: 'open' });
     shadowRoot.append(style, this.timeSpan);
   }
 
-  /** Format seconds to MM:SS or H:MM:SS */
-  private formatTime(seconds: number): string {
-    if (Number.isNaN(seconds) || !Number.isFinite(seconds)) {
-      return '0:00';
-    }
-
-    const totalSeconds = Math.floor(seconds);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const secs = totalSeconds % 60;
-
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-    return `${minutes}:${secs.toString().padStart(2, '0')}`;
-  }
-
   private updateState(): void {
     const { videoElement } = this;
     if (!videoElement) return;
 
-    const currentTime = this.formatTime(videoElement.currentTime);
-    const duration = this.formatTime(videoElement.duration);
+    const currentTime = formatTime(videoElement.currentTime);
+    const duration = formatTime(videoElement.duration);
     this.timeSpan.textContent = `${currentTime} / ${duration}`;
   }
 

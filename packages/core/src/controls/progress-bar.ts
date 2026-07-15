@@ -1,4 +1,5 @@
 import { PlayerControlElement } from './base';
+import { formatTime } from './format-time';
 
 const PROGRESS_BAR_ELEMENT_NAME = 'another-player-progress-bar';
 
@@ -88,6 +89,7 @@ export class ProgressBarElement extends PlayerControlElement {
 
     this.slider = document.createElement('input');
     this.slider.type = 'range';
+    this.slider.setAttribute('part', 'slider');
     this.slider.min = '0';
     this.slider.max = '1';
     this.slider.step = '0.001';
@@ -111,6 +113,10 @@ export class ProgressBarElement extends PlayerControlElement {
 
     this.slider.value = String(progress);
     this.slider.style.setProperty('--progress-percent', `${progress * 100}%`);
+    this.slider.setAttribute(
+      'aria-valuetext',
+      `${formatTime(currentTime)} of ${formatTime(duration)}`,
+    );
   }
 
   protected setup(): void {

@@ -12,6 +12,7 @@
 ## Features
 
 - **Standard-Compliant**: Built on native Web Components.
+- **Accessible Controls**: Native buttons and sliders with stateful labels and caption support.
 - **Headless & Customisable**: Decouples logic from UI; styles seamlessly with Tailwind, Windi, or custom CSS.
 - **Extensible Plugins**: Lifecycle-hook-based system inspired by Vite and Rollup.
 - **Streaming Formats**: Play DASH and HLS streams via official plugins.
@@ -88,6 +89,81 @@ Keep the plugin instance when you need its `api`. `player.getPlugins()` remains 
 
 Another Player is browser-only and distributed as ESM. It accesses Web Component APIs during module evaluation, so SSR applications must dynamically import it from a client-only boundary.
 
+### Declarative Media Attributes and Captions
+
+Standard media configuration lives on `<another-player>` rather than in `PlayerOptions`. Supported attributes and reflected properties are `poster`, `preload`, `autoplay`, `loop`, `muted`, `playsinline`, and `crossorigin`. The source remains managed by `createPlayer()` and `load()`.
+
+Caption and subtitle tracks must be direct children of `<another-player>`:
+
+```html
+<another-player
+  src="/video.mp4"
+  poster="/poster.jpg"
+  preload="metadata"
+  muted
+  playsinline
+  crossorigin="anonymous"
+>
+  <track
+    kind="captions"
+    src="/captions/en.vtt"
+    srclang="en"
+    label="English"
+    default
+  >
+
+  <another-player-controls slot="controls">
+    <another-player-play-button></another-player-play-button>
+    <another-player-progress-bar></another-player-progress-bar>
+    <another-player-time-display></another-player-time-display>
+    <another-player-mute-button></another-player-mute-button>
+    <another-player-volume-slider></another-player-volume-slider>
+    <another-player-captions-button></another-player-captions-button>
+    <another-player-fullscreen-button></another-player-fullscreen-button>
+  </another-player-controls>
+</another-player>
+```
+
+Bind the declarative element to the JavaScript lifecycle:
+
+```ts
+import { createPlayer, type PlayerElement } from "@another-player/core";
+
+const element = document.querySelector("another-player") as PlayerElement;
+const player = createPlayer({ element });
+await player.ready;
+```
+
+`crossorigin` defaults to `anonymous` when omitted. The captions button enables the default track, then the first available track, and remembers the last selected track. It intentionally provides a toggle rather than a language menu.
+
+### Styling with CSS Parts
+
+The player exposes `container`, `video`, and `controls`. Built-in controls expose `button`, `icon`, `slider`, and `time` where applicable:
+
+```css
+another-player::part(video) {
+  border-radius: 8px;
+}
+
+another-player::part(controls) {
+  background: linear-gradient(transparent, rgb(0 0 0 / 80%));
+}
+
+another-player-play-button::part(button) {
+  color: white;
+}
+
+another-player-progress-bar::part(slider) {
+  accent-color: tomato;
+}
+```
+
+### Accessibility Contract
+
+The built-in controls keep native `<button>` and `<input type="range">` behavior, including Tab, Space, and arrow-key handling. Play, mute, captions, and fullscreen expose their current state; sliders provide readable percentage and elapsed-time values. Decorative icons are hidden from assistive technology.
+
+Keyboard and screen-reader behavior is a browser-only contract. Applications that replace the controls remain responsible for equivalent names, states, focus visibility, and keyboard behavior.
+
 ---
 
 ## DRM Support
@@ -159,13 +235,6 @@ pnpm check
 pnpm dev
 ```
 
-## Next: Standards & Accessibility
+## Next
 
-The next release will focus on native media parity before framework adapters:
-
-- mirror standard video attributes such as `poster`, `preload`, `autoplay`, `loop`, `muted`, `playsinline`, and `crossorigin`
-- support declarative caption tracks, a captions control, and a WebVTT playground example
-- expose stable CSS parts for the video, controls, buttons, and sliders
-- complete keyboard and screen-reader behavior, including pressed states and readable time values
-
-Caption support comes before a quality-selector UI. Framework adapters remain deferred until these browser contracts are stable.
+The next product step is a quality-selector UI built on the existing HLS and DASH plugin APIs. Framework adapters remain deferred until the browser contracts have more real-world use.

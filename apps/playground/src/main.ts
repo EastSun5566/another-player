@@ -30,13 +30,14 @@ const demos = [
   },
 ] as const;
 
-const controls = `
+const controls = (includeCaptions: boolean): string => `
   <another-player-controls slot="controls">
     <another-player-play-button></another-player-play-button>
     <another-player-progress-bar></another-player-progress-bar>
     <another-player-time-display></another-player-time-display>
     <another-player-mute-button></another-player-mute-button>
     <another-player-volume-slider></another-player-volume-slider>
+    ${includeCaptions ? '<another-player-captions-button></another-player-captions-button>' : ''}
     <another-player-fullscreen-button></another-player-fullscreen-button>
   </another-player-controls>
 `;
@@ -50,7 +51,7 @@ app.innerHTML = `
       <span></span><span></span><span></span>
     </div>
     <div>
-      <p class="eyebrow">Web component media lab · v0.2</p>
+      <p class="eyebrow">Web component media lab · v0.3</p>
       <h1>Another Player<br><span>Signal Bench</span></h1>
     </div>
     <p class="masthead__lede">
@@ -90,7 +91,12 @@ demos.forEach((demo) => {
   if (demo.id === 'dash') player.use(dashPlugin());
 
   player.mount(mountPoint);
-  if (player.element) player.element.innerHTML = controls;
+  if (player.element) {
+    const captions = demo.id === 'mp4'
+      ? `<track kind="captions" src="${import.meta.env.BASE_URL}captions/en.vtt" srclang="en" label="English" default>`
+      : '';
+    player.element.innerHTML = `${captions}${controls(demo.id === 'mp4')}`;
+  }
 
   void player.ready.then(() => {
     status.value = 'Ready';

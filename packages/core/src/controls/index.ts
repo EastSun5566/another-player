@@ -6,3 +6,4 @@ export * from './volume-slider';
 export * from './progress-bar';
 export * from './time-display';
 export * from './fullscreen-button';
+export * from './captions-button';

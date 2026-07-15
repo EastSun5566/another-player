@@ -6,10 +6,23 @@ type PlayerEventListener<K extends keyof PlayerEventMap> = (event: PlayerEventMa
 
 export class PlayerElement extends HTMLElement {
   static get observedAttributes(): string[] {
-    return ['src'];
+    return [
+      'src',
+      'poster',
+      'preload',
+      'autoplay',
+      'loop',
+      'muted',
+      'playsinline',
+      'crossorigin',
+    ];
   }
 
   readonly videoElement: HTMLVideoElement;
+
+  private trackClones = new Map<HTMLTrackElement, HTMLTrackElement>();
+
+  private trackObserver?: MutationObserver;
 
   get src(): string {
     return this.getAttribute('src') ?? '';
@@ -23,12 +36,73 @@ export class PlayerElement extends HTMLElement {
     }
   }
 
+  get poster(): string {
+    return this.getAttribute('poster') ?? '';
+  }
+
+  set poster(value: string) {
+    this.reflectStringAttribute('poster', value);
+  }
+
+  get preload(): string {
+    return this.getAttribute('preload') ?? '';
+  }
+
+  set preload(value: string) {
+    this.reflectStringAttribute('preload', value);
+  }
+
+  get autoplay(): boolean {
+    return this.hasAttribute('autoplay');
+  }
+
+  set autoplay(value: boolean) {
+    this.toggleAttribute('autoplay', value);
+  }
+
+  get loop(): boolean {
+    return this.hasAttribute('loop');
+  }
+
+  set loop(value: boolean) {
+    this.toggleAttribute('loop', value);
+  }
+
+  get muted(): boolean {
+    return this.videoElement.muted;
+  }
+
+  set muted(value: boolean) {
+    this.toggleAttribute('muted', value);
+  }
+
+  get playsInline(): boolean {
+    return this.hasAttribute('playsinline');
+  }
+
+  set playsInline(value: boolean) {
+    this.toggleAttribute('playsinline', value);
+  }
+
+  get crossOrigin(): string | null {
+    return this.getAttribute('crossorigin') ?? 'anonymous';
+  }
+
+  set crossOrigin(value: string | null) {
+    if (value === null) {
+      this.removeAttribute('crossorigin');
+    } else {
+      this.setAttribute('crossorigin', value);
+    }
+  }
+
   constructor() {
     super();
 
     const videoElement = document.createElement('video');
     videoElement.style.setProperty('width', '100%');
     videoElement.crossOrigin = 'anonymous';
+    videoElement.setAttribute('part', 'video');
     this.videoElement = videoElement;
 
     const controlsSlot = document.createElement('slot');
@@ -61,13 +135,40 @@ export class PlayerElement extends HTMLElement {
 
     const container = document.createElement('div');
     container.className = 'container';
+    container.setAttribute('part', 'container');
 
     const controlsContainer = document.createElement('div');
     controlsContainer.className = 'controls-container';
+    controlsContainer.setAttribute('part', 'controls');
     controlsContainer.appendChild(controlsSlot);
 
     container.append(videoElement, controlsContainer, defaultSlot);
     this.attachShadow({ mode: 'open' }).append(style, container);
+  }
+
+  connectedCallback(): void {
+    this.syncTracks();
+    this.trackObserver = new MutationObserver((records) => {
+      if (records.some((record) => (
+        (record.type === 'childList' && record.target === this)
+        || (record.target instanceof HTMLTrackElement && record.target.parentElement === this)
+      ))) {
+        this.syncTracks();
+      }
+    });
+    this.trackObserver.observe(this, {
+      attributes: true,
+      attributeFilter: ['src', 'kind', 'srclang', 'label', 'default'],
+      childList: true,
+      subtree: true,
+    });
+  }
+
+  disconnectedCallback(): void {
+    this.trackObserver?.disconnect();
+    this.trackObserver = undefined;
+    this.trackClones.forEach((clone) => clone.remove());
+    this.trackClones.clear();
   }
 
   attributeChangedCallback(
@@ -75,14 +176,74 @@ export class PlayerElement extends HTMLElement {
     _oldValue: string | null,
     newValue: string | null,
   ): void {
-    if (attributeName !== 'src') return;
-
-    if (newValue === null) {
-      this.videoElement.removeAttribute('src');
-      return;
+    if (attributeName === 'src' || attributeName === 'poster' || attributeName === 'preload') {
+      if (newValue === null) {
+        this.videoElement.removeAttribute(attributeName);
+      } else {
+        this.videoElement.setAttribute(attributeName, newValue);
+      }
+    } else if (attributeName === 'autoplay') {
+      this.videoElement.autoplay = newValue !== null;
+    } else if (attributeName === 'loop') {
+      this.videoElement.loop = newValue !== null;
+    } else if (attributeName === 'muted') {
+      const muted = newValue !== null;
+      this.videoElement.defaultMuted = muted;
+      this.videoElement.muted = muted;
+    } else if (attributeName === 'playsinline') {
+      this.videoElement.playsInline = newValue !== null;
+    } else if (attributeName === 'crossorigin') {
+      this.videoElement.crossOrigin = newValue ?? 'anonymous';
     }
+  }
 
-    this.videoElement.src = newValue;
+  private reflectStringAttribute(name: string, value: string): void {
+    if (value) {
+      this.setAttribute(name, value);
+    } else {
+      this.removeAttribute(name);
+    }
+  }
+
+  private syncTracks(): void {
+    const sourceTracks = Array.from(this.children).filter(
+      (child): child is HTMLTrackElement => (
+        child instanceof HTMLTrackElement
+        && (child.kind === 'captions' || child.kind === 'subtitles')
+      ),
+    );
+    const currentSources = new Set(sourceTracks);
+
+    this.trackClones.forEach((clone, source) => {
+      if (!currentSources.has(source)) {
+        clone.remove();
+        this.trackClones.delete(source);
+      }
+    });
+
+    sourceTracks.forEach((source) => {
+      let clone = this.trackClones.get(source);
+      if (!clone) {
+        clone = document.createElement('track');
+        this.trackClones.set(source, clone);
+        this.syncTrackAttributes(source, clone);
+        this.videoElement.appendChild(clone);
+        return;
+      }
+      this.syncTrackAttributes(source, clone);
+    });
+  }
+
+  private syncTrackAttributes(source: HTMLTrackElement, clone: HTMLTrackElement): void {
+    ['src', 'kind', 'srclang', 'label'].forEach((attributeName) => {
+      const value = source.getAttribute(attributeName);
+      if (value === null) {
+        clone.removeAttribute(attributeName);
+      } else {
+        clone.setAttribute(attributeName, value);
+      }
+    });
+    clone.default = source.default;
   }
 }
 

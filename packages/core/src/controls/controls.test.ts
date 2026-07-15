@@ -10,6 +10,7 @@ import {
   ProgressBarElement,
   TimeDisplayElement,
   FullscreenButtonElement,
+  CaptionsButtonElement,
   CONTROLS_ELEMENT_NAME,
   PLAY_BUTTON_ELEMENT_NAME,
   MUTE_BUTTON_ELEMENT_NAME,
@@ -17,7 +18,28 @@ import {
   PROGRESS_BAR_ELEMENT_NAME,
   TIME_DISPLAY_ELEMENT_NAME,
   FULLSCREEN_BUTTON_ELEMENT_NAME,
+  CAPTIONS_BUTTON_ELEMENT_NAME,
 } from './index';
+
+type MutableTextTrackList = TextTrackList & {
+  setTracks: (tracks: TextTrack[]) => void;
+};
+
+const createTextTrack = (
+  kind: TextTrackKind = 'captions',
+  mode: TextTrackMode = 'disabled',
+): TextTrack => ({ kind, mode } as TextTrack);
+
+const createTextTrackList = (initialTracks: TextTrack[] = []): MutableTextTrackList => {
+  let tracks = initialTracks;
+  const list = new EventTarget() as MutableTextTrackList;
+  Object.defineProperty(list, 'length', { get: () => tracks.length });
+  Array.from({ length: 10 }, (_, index) => index).forEach((index) => {
+    Object.defineProperty(list, index, { get: () => tracks[index] });
+  });
+  list.setTracks = (nextTracks) => { tracks = nextTracks; };
+  return list;
+};
 
 describe('Control Elements', () => {
   let container: HTMLElement;
@@ -30,6 +52,7 @@ describe('Control Elements', () => {
 
   afterEach(() => {
     document.body.innerHTML = '';
+    vi.restoreAllMocks();
   });
 
   describe('PlayerControlsElement', () => {
@@ -43,6 +66,7 @@ describe('Control Elements', () => {
 
       expect(controls.shadowRoot).toBeTruthy();
       expect(controls.shadowRoot?.querySelector('slot')).toBeTruthy();
+      expect(controls.shadowRoot?.querySelector('[part~="controls"]')).toBeTruthy();
     });
   });
 
@@ -65,6 +89,8 @@ describe('Control Elements', () => {
 
       const btn = button.shadowRoot?.querySelector('button');
       expect(btn?.getAttribute('aria-label')).toBe('Play');
+      expect(btn?.getAttribute('aria-pressed')).toBe('false');
+      expect(btn?.getAttribute('part')).toBe('button');
     });
   });
 
@@ -87,6 +113,7 @@ describe('Control Elements', () => {
 
       const btn = button.shadowRoot?.querySelector('button');
       expect(btn?.getAttribute('aria-label')).toBe('Mute');
+      expect(btn?.getAttribute('aria-pressed')).toBe('false');
     });
   });
 
@@ -110,6 +137,8 @@ describe('Control Elements', () => {
 
       const input = slider.shadowRoot?.querySelector('input');
       expect(input?.getAttribute('aria-label')).toBe('Volume');
+      expect(input?.getAttribute('aria-valuetext')).toBeNull();
+      expect(input?.getAttribute('part')).toBe('slider');
     });
   });
 
@@ -133,6 +162,7 @@ describe('Control Elements', () => {
 
       const input = bar.shadowRoot?.querySelector('input');
       expect(input?.getAttribute('aria-label')).toBe('Seek');
+      expect(input?.getAttribute('part')).toBe('slider');
     });
   });
 
@@ -155,6 +185,7 @@ describe('Control Elements', () => {
 
       const span = display.shadowRoot?.querySelector('span');
       expect(span?.textContent).toBe('0:00 / 0:00');
+      expect(span?.getAttribute('part')).toBe('time');
     });
   });
 
@@ -182,6 +213,27 @@ describe('Control Elements', () => {
 
       const btn = fsButton.shadowRoot?.querySelector('button');
       expect(btn?.getAttribute('aria-label')).toBe('Enter fullscreen');
+      expect(btn?.getAttribute('aria-pressed')).toBe('false');
+    });
+  });
+
+  describe('CaptionsButtonElement', () => {
+    it('should be registered as a custom element', () => {
+      expect(customElements.get(CAPTIONS_BUTTON_ELEMENT_NAME)).toBe(CaptionsButtonElement);
+    });
+
+    it('should start disabled with an accessible toggle state', () => {
+      const captionsButton = document.createElement(
+        CAPTIONS_BUTTON_ELEMENT_NAME,
+      ) as CaptionsButtonElement;
+      document.body.appendChild(captionsButton);
+
+      const button = captionsButton.shadowRoot?.querySelector('button');
+      expect(button?.disabled).toBe(true);
+      expect(button?.getAttribute('aria-label')).toBe('Show captions');
+      expect(button?.getAttribute('aria-pressed')).toBe('false');
+      expect(button?.getAttribute('part')).toBe('button');
+      expect(button?.querySelector('[part~="icon"]')).toBeTruthy();
     });
   });
 
@@ -191,6 +243,22 @@ describe('Control Elements', () => {
       const control = document.createElement(elementName);
       player.element?.appendChild(control);
       return { player, control, video: player.element!.videoElement };
+    };
+
+    const mountCaptions = (tracks: TextTrack[]) => {
+      const player = createPlayer({ src: 'https://example.com/video.mp4' }).mount(container);
+      const video = player.element!.videoElement;
+      const textTracks = createTextTrackList(tracks);
+      Object.defineProperty(video, 'textTracks', {
+        configurable: true,
+        value: textTracks,
+      });
+      const control = document.createElement(CAPTIONS_BUTTON_ELEMENT_NAME);
+      player.element?.appendChild(control);
+      const button = control.shadowRoot?.querySelector('button') as HTMLButtonElement;
+      return {
+        player, video, textTracks, control, button,
+      };
     };
 
     it('should support slotted controls in player element', () => {
@@ -214,8 +282,15 @@ describe('Control Elements', () => {
       expect(play).toHaveBeenCalledOnce();
 
       Object.defineProperty(video, 'paused', { configurable: true, value: false });
+      video.dispatchEvent(new Event('play'));
+      expect(button?.getAttribute('aria-pressed')).toBe('true');
+
       button?.click();
       expect(pause).toHaveBeenCalledOnce();
+
+      Object.defineProperty(video, 'paused', { configurable: true, value: true });
+      video.dispatchEvent(new Event('pause'));
+      expect(button?.getAttribute('aria-pressed')).toBe('false');
     });
 
     it('should toggle mute and update its state', () => {
@@ -227,6 +302,23 @@ describe('Control Elements', () => {
 
       expect(video.muted).toBe(true);
       expect(button?.getAttribute('aria-label')).toBe('Unmute');
+      expect(button?.getAttribute('aria-pressed')).toBe('true');
+    });
+
+    it('should restore the last audible volume when unmuting from zero', () => {
+      const { control, video } = mountControl(MUTE_BUTTON_ELEMENT_NAME);
+      const button = control.shadowRoot?.querySelector('button');
+      video.volume = 0.35;
+      video.dispatchEvent(new Event('volumechange'));
+      video.volume = 0;
+      video.dispatchEvent(new Event('volumechange'));
+
+      button?.click();
+
+      expect(video.volume).toBe(0.35);
+      expect(video.muted).toBe(false);
+      expect(button?.getAttribute('aria-label')).toBe('Mute');
+      expect(button?.getAttribute('aria-pressed')).toBe('false');
     });
 
     it('should apply volume input and unmute playback', () => {
@@ -239,6 +331,8 @@ describe('Control Elements', () => {
 
       expect(video.volume).toBe(0.35);
       expect(video.muted).toBe(false);
+      video.dispatchEvent(new Event('volumechange'));
+      expect(input.getAttribute('aria-valuetext')).toBe('35%');
     });
 
     it('should seek from progress input and update the time display', () => {
@@ -257,6 +351,7 @@ describe('Control Elements', () => {
 
       expect(video.currentTime).toBe(60);
       expect(display.shadowRoot?.querySelector('span')?.textContent).toBe('1:00 / 2:00');
+      expect(input.getAttribute('aria-valuetext')).toBe('1:00 of 2:00');
     });
 
     it('should request fullscreen from the fullscreen button', () => {
@@ -270,6 +365,100 @@ describe('Control Elements', () => {
       control.shadowRoot?.querySelector('button')?.click();
 
       expect(requestFullscreen).toHaveBeenCalledOnce();
+    });
+
+    it('should update fullscreen pressed state only for its own player', () => {
+      const { player, control } = mountControl(FULLSCREEN_BUTTON_ELEMENT_NAME);
+      const button = control.shadowRoot?.querySelector('button');
+      Object.defineProperty(document, 'fullscreenElement', {
+        configurable: true,
+        value: player.element,
+      });
+
+      document.dispatchEvent(new Event('fullscreenchange'));
+
+      expect(button?.getAttribute('aria-label')).toBe('Exit fullscreen');
+      expect(button?.getAttribute('aria-pressed')).toBe('true');
+      Reflect.deleteProperty(document, 'fullscreenElement');
+    });
+
+    it('should enable and toggle the default captions track', () => {
+      const first = createTextTrack('captions');
+      const second = createTextTrack('subtitles');
+      const { video, button } = mountCaptions([first, second]);
+      const defaultTrack = document.createElement('track');
+      defaultTrack.kind = 'subtitles';
+      defaultTrack.default = true;
+      Object.defineProperty(defaultTrack, 'track', { value: second });
+      video.appendChild(defaultTrack);
+
+      button.click();
+
+      expect(button.disabled).toBe(false);
+      expect(first.mode).toBe('disabled');
+      expect(second.mode).toBe('showing');
+      expect(button.getAttribute('aria-label')).toBe('Hide captions');
+      expect(button.getAttribute('aria-pressed')).toBe('true');
+    });
+
+    it('should remember the last selected captions track', () => {
+      const first = createTextTrack('captions', 'showing');
+      const second = createTextTrack('subtitles');
+      const { button, textTracks } = mountCaptions([first, second]);
+      textTracks.dispatchEvent(new Event('change'));
+
+      button.click();
+      expect(first.mode).toBe('disabled');
+      expect(button.getAttribute('aria-pressed')).toBe('false');
+
+      button.click();
+      expect(first.mode).toBe('showing');
+      expect(second.mode).toBe('disabled');
+    });
+
+    it('should select the first captions track when no default or previous track exists', () => {
+      const first = createTextTrack('captions');
+      const second = createTextTrack('subtitles');
+      const { button } = mountCaptions([first, second]);
+
+      button.click();
+
+      expect(first.mode).toBe('showing');
+      expect(second.mode).toBe('disabled');
+    });
+
+    it('should react to external track list and mode changes and clean up listeners', () => {
+      const track = createTextTrack('captions');
+      const { button, textTracks, control } = mountCaptions([]);
+
+      expect(button.disabled).toBe(true);
+      textTracks.setTracks([track]);
+      textTracks.dispatchEvent(new Event('addtrack'));
+      expect(button.disabled).toBe(false);
+
+      textTracks.setTracks([]);
+      textTracks.dispatchEvent(new Event('removetrack'));
+      expect(button.disabled).toBe(true);
+
+      textTracks.setTracks([track]);
+      textTracks.dispatchEvent(new Event('addtrack'));
+
+      track.mode = 'showing';
+      textTracks.dispatchEvent(new Event('change'));
+      expect(button.getAttribute('aria-label')).toBe('Hide captions');
+
+      control.remove();
+      track.mode = 'disabled';
+      textTracks.dispatchEvent(new Event('change'));
+      expect(button.getAttribute('aria-label')).toBe('Hide captions');
+    });
+
+    it('should keep native controls keyboard focusable', () => {
+      const play = mountControl(PLAY_BUTTON_ELEMENT_NAME).control;
+      const progress = mountControl(PROGRESS_BAR_ELEMENT_NAME).control;
+
+      expect((play.shadowRoot?.querySelector('button') as HTMLButtonElement).tabIndex).toBe(0);
+      expect((progress.shadowRoot?.querySelector('input') as HTMLInputElement).tabIndex).toBe(0);
     });
 
     it('should remove event handlers when disconnected', () => {

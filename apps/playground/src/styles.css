@@ -260,12 +260,3 @@ h1 span {
   .player-mount { min-height: 180px; padding: 8px; }
   .site-footer { gap: 16px; flex-direction: column; }
 }
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
-  }
-}

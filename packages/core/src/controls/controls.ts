@@ -25,6 +25,7 @@ export class PlayerControlsElement extends HTMLElement {
     `;
 
     const slot = document.createElement('slot');
+    slot.setAttribute('part', 'controls');
 
     const shadowRoot = this.attachShadow({ mode: 'open' });
     shadowRoot.append(style, slot);

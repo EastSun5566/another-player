@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.3.0](https://github.com/EastSun5566/another-player/compare/v0.2.0...v0.3.0) (2026-07-16)
+
+### Features
+
+- mirror native media attributes from `another-player` to its inner video element
+- support declarative caption and subtitle tracks with an accessible captions toggle
+- expose stable CSS parts for the player and built-in controls
+- add pressed states and readable range values to the built-in controls
+
+### Bug Fixes
+
+- restore the last audible volume when unmuting from zero
+- keep declarative muted state separate from runtime control changes
+
 ## [0.2.0](https://github.com/EastSun5566/another-player/compare/v0.1.1...v0.2.0) (2026-07-16)
 
 ### Breaking Changes

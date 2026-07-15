@@ -75,6 +75,7 @@ export class VolumeSliderElement extends PlayerControlElement {
 
     this.slider = document.createElement('input');
     this.slider.type = 'range';
+    this.slider.setAttribute('part', 'slider');
     this.slider.min = '0';
     this.slider.max = '1';
     this.slider.step = '0.05';
@@ -92,6 +93,7 @@ export class VolumeSliderElement extends PlayerControlElement {
     const volume = videoElement.muted ? 0 : videoElement.volume;
     this.slider.value = String(volume);
     this.slider.style.setProperty('--volume-percent', `${volume * 100}%`);
+    this.slider.setAttribute('aria-valuetext', `${Math.round(volume * 100)}%`);
   }
 
   protected setup(): void {
