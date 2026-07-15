@@ -1,7 +1,6 @@
 import type Hls from 'hls.js';
 import type { DRMSystemsConfiguration } from 'hls.js';
-import { definePlugin, type PluginContext } from '../plugin';
-import type { PlayerEventMap } from '../types';
+import type { PluginContext, PluginWithApi } from '../plugin';
 
 /** Quality level representation for HLS streams */
 export interface HlsQualityLevel {
@@ -54,16 +53,21 @@ export interface HlsPluginOptions {
   emeEnabled?: boolean;
 }
 
-/** Extended player events for HLS plugin */
-export interface HlsPlayerEventMap extends PlayerEventMap {
-  /** Emitted when quality levels are loaded */
-  hlsQualityLevels: { levels: HlsQualityLevel[] };
-  /** Emitted when quality level changes */
-  hlsQualityChange: { level: HlsQualityLevel | null; auto: boolean };
-  /** Emitted when HLS manifest is parsed */
-  hlsManifestParsed: { levels: number };
-  /** Emitted on HLS error */
-  hlsError: { type: string; details: string; fatal: boolean };
+export interface HlsPluginApi {
+  getQualityLevels: () => HlsQualityLevel[];
+  getCurrentQualityLevel: () => HlsQualityLevel | null;
+  setQualityLevel: (levelIndex: number) => void;
+  isAutoQuality: () => boolean;
+  getInstance: () => Hls | null;
+}
+
+declare module '../types' {
+  interface PlayerEventMap {
+    hlsQualityLevels: { levels: HlsQualityLevel[] };
+    hlsQualityChange: { level: HlsQualityLevel | null; auto: boolean };
+    hlsManifestParsed: { levels: number };
+    hlsError: { type: string; details: string; fatal: boolean };
+  }
 }
 
 /** Check if a source is an HLS stream */
@@ -86,15 +90,16 @@ export function isHlsSupported(): boolean {
  *
  * @example
  * ```ts
- * import { createPlayer } from '@another-player/core';
- * import { hlsPlugin } from '@another-player/core/plugins';
+ * import { createPlayer, hlsPlugin } from '@another-player/core';
  *
  * const player = createPlayer({
  *   src: 'https://example.com/stream.m3u8',
  * }).use(hlsPlugin()).mount('#player');
  * ```
  */
-export const hlsPlugin = definePlugin<HlsPluginOptions>((options = {}) => {
+export const hlsPlugin = (
+  options: HlsPluginOptions = {},
+): PluginWithApi<HlsPluginOptions, HlsPluginApi> => {
   const {
     hlsConfig = {},
     enableAdaptiveBitrate = true,
@@ -163,9 +168,18 @@ export const hlsPlugin = definePlugin<HlsPluginOptions>((options = {}) => {
   /** Check if auto quality is enabled */
   const isAutoQuality = (): boolean => hlsInstance?.autoLevelEnabled ?? true;
 
+  const api: HlsPluginApi = {
+    getQualityLevels,
+    getCurrentQualityLevel,
+    setQualityLevel,
+    isAutoQuality,
+    getInstance: () => hlsInstance,
+  };
+
   return {
     name: 'hls',
     options,
+    api,
 
     async install(context: PluginContext) {
       const src = context.getSrc();
@@ -182,19 +196,16 @@ export const hlsPlugin = definePlugin<HlsPluginOptions>((options = {}) => {
 
       // Check if HLS.js is supported
       if (!isHlsSupported()) {
-        // eslint-disable-next-line no-console
         console.warn('[HLS Plugin] HLS.js is not supported in this browser');
         return;
       }
 
       // Dynamically import HLS.js
       // This allows the plugin to be tree-shaken if not used
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       const HlsModule = await import('hls.js');
       const Hls = HlsModule.default;
 
       if (!Hls.isSupported()) {
-        // eslint-disable-next-line no-console
         console.warn('[HLS Plugin] HLS.js is not supported in this browser');
         return;
       }
@@ -213,10 +224,8 @@ export const hlsPlugin = definePlugin<HlsPluginOptions>((options = {}) => {
 
       // Set up event listeners
       hlsInstance.on(Hls.Events.MANIFEST_PARSED, (_event, data) => {
-        // Emit custom event for manifest parsed
-        videoElement.dispatchEvent(new CustomEvent('hlsManifestParsed', {
-          detail: { levels: data.levels.length },
-        }));
+        context.emit('hlsManifestParsed', { levels: data.levels.length });
+        context.emit('hlsQualityLevels', { levels: getQualityLevels() });
       });
 
       hlsInstance.on(Hls.Events.LEVEL_SWITCHED, (_event, data) => {
@@ -229,12 +238,10 @@ export const hlsPlugin = definePlugin<HlsPluginOptions>((options = {}) => {
             index: data.level,
           };
 
-          videoElement.dispatchEvent(new CustomEvent('hlsQualityChange', {
-            detail: {
-              level: qualityLevel,
-              auto: hlsInstance?.autoLevelEnabled ?? false,
-            },
-          }));
+          context.emit('hlsQualityChange', {
+            level: qualityLevel,
+            auto: hlsInstance?.autoLevelEnabled ?? false,
+          });
         }
       });
 
@@ -257,42 +264,24 @@ export const hlsPlugin = definePlugin<HlsPluginOptions>((options = {}) => {
           }
         }
 
-        videoElement.dispatchEvent(new CustomEvent('hlsError', {
-          detail: {
-            type: data.type,
-            details: data.details,
-            fatal: data.fatal,
-          },
-        }));
+        context.emit('hlsError', {
+          type: data.type,
+          details: data.details,
+          fatal: data.fatal,
+        });
       });
 
       // Load the source
       hlsInstance.loadSource(src);
     },
 
-    mount(context: PluginContext) {
-      // Expose quality control methods on video element for external access
-      const { videoElement } = context;
-
-      // Use a custom property to expose HLS controls
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, no-underscore-dangle
-      (videoElement as any).__hlsControls = {
-        getQualityLevels,
-        getCurrentQualityLevel,
-        setQualityLevel,
-        isAutoQuality,
-        getInstance: () => hlsInstance,
-      };
-    },
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    destroy(_context: PluginContext) {
+    destroy() {
       if (hlsInstance) {
         hlsInstance.destroy();
         hlsInstance = null;
       }
     },
   };
-});
+};
 
 export default hlsPlugin;

@@ -1,5 +1,5 @@
 import { DEFAULT_ELEMENT_NAME } from './constants';
-import { PlayerElement } from './core';
+import type { PlayerElement } from './core';
 
 declare global {
   interface HTMLElementTagNameMap {
@@ -8,9 +8,8 @@ declare global {
 }
 
 export interface PlayerOptions {
-  elementName?: string;
   element?: PlayerElement;
-  src?: string | undefined
+  src?: string;
 }
 
 /** Event data for play and pause events */

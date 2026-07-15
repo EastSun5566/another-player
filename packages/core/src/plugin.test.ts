@@ -150,6 +150,7 @@ describe('Plugin System', () => {
         setSrc: expect.any(Function),
         on: expect.any(Function),
         off: expect.any(Function),
+        emit: expect.any(Function),
       }));
     });
 
@@ -182,9 +183,7 @@ describe('Plugin System', () => {
 
       await new Promise((resolve) => { setTimeout(resolve, 10); });
 
-      player.destroy();
-
-      await new Promise((resolve) => { setTimeout(resolve, 10); });
+      await player.destroy();
 
       expect(destroyFn).toHaveBeenCalledTimes(1);
     });
@@ -214,9 +213,7 @@ describe('Plugin System', () => {
 
       await new Promise((resolve) => { setTimeout(resolve, 10); });
 
-      player.destroy();
-
-      await new Promise((resolve) => { setTimeout(resolve, 10); });
+      await player.destroy();
 
       // Destroy should be called in reverse order
       expect(callOrder).toEqual(['plugin-3', 'plugin-2', 'plugin-1']);
@@ -366,9 +363,7 @@ describe('Plugin System', () => {
   });
 
   describe('Error Handling', () => {
-    it('should catch and log errors in install hook', async () => {
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
+    it('should reject ready when an install hook fails', async () => {
       const plugin = definePlugin(() => ({
         name: 'error-test',
         install: () => {
@@ -379,19 +374,10 @@ describe('Plugin System', () => {
       const player = createPlayer({ src: 'https://example.com/video.mp4' });
       player.use(plugin()).mount(container);
 
-      await new Promise((resolve) => { setTimeout(resolve, 10); });
-
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Error in plugin lifecycle:',
-        expect.any(Error),
-      );
-
-      consoleErrorSpy.mockRestore();
+      await expect(player.ready).rejects.toThrow('Install failed');
     });
 
-    it('should not break player when plugin throws', async () => {
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
+    it('should still allow cleanup after a plugin fails', async () => {
       const plugin = definePlugin(() => ({
         name: 'throwing-plugin',
         install: () => {
@@ -402,13 +388,57 @@ describe('Plugin System', () => {
       const player = createPlayer({ src: 'https://example.com/video.mp4' });
       player.use(plugin()).mount(container);
 
-      await new Promise((resolve) => { setTimeout(resolve, 10); });
+      await expect(player.ready).rejects.toThrow('Plugin error');
+      await expect(player.destroy()).resolves.toBeUndefined();
+      expect(player.element).toBeUndefined();
+    });
 
-      // Player should still work
-      expect(player.element).toBeDefined();
-      expect(() => player.pause()).not.toThrow();
+    it('should wait for an in-progress install before destroying', async () => {
+      const order: string[] = [];
+      let releaseInstall = (): void => {};
+      const installGate = new Promise<void>((resolve) => {
+        releaseInstall = resolve;
+      });
+      const player = createPlayer({ src: 'video.mp4' })
+        .use({
+          name: 'slow-plugin',
+          install: async () => {
+            order.push('install:start');
+            await installGate;
+            order.push('install:end');
+          },
+          destroy: () => { order.push('destroy'); },
+        })
+        .mount(container);
 
-      consoleErrorSpy.mockRestore();
+      const destroyPromise = player.destroy();
+      await Promise.resolve();
+      expect(order).toEqual(['install:start']);
+
+      releaseInstall();
+      await destroyPromise;
+
+      expect(order).toEqual(['install:start', 'install:end', 'destroy']);
+      expect(player.element).toBeUndefined();
+    });
+
+    it('should run every destroy hook even when one fails', async () => {
+      const cleanup = vi.fn();
+      const player = createPlayer({ src: 'video.mp4' })
+        .use([
+          { name: 'cleanup', destroy: cleanup },
+          {
+            name: 'broken-cleanup',
+            destroy: () => { throw new Error('Cleanup failed'); },
+          },
+        ])
+        .mount(container);
+      await player.ready;
+
+      await expect(player.destroy()).rejects.toThrow('Plugin cleanup failed');
+
+      expect(cleanup).toHaveBeenCalledOnce();
+      expect(player.element).toBeUndefined();
     });
   });
 

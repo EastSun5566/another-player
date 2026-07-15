@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: "pages"
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -24,22 +24,19 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
         with:
-          version: 10
+          version: 10.34.5
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
           cache: "pnpm"
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
-      - name: Build core package
-        run: pnpm run build:core
-
-      - name: Build Storybook
-        run: pnpm --filter playground build
+      - name: Build
+        run: pnpm build
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -47,7 +44,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: "./apps/playground/storybook-static"
+          path: "./apps/playground/dist"
 
   deploy:
     environment:

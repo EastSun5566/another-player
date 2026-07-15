@@ -20,7 +20,7 @@ describe('createPlayer', () => {
   it('should create a player instance', () => {
     const player = createPlayer();
     expect(player).toBeDefined();
-    expect(player.elementName).toBe(DEFAULT_ELEMENT_NAME);
+    expect(player.src).toBe('');
   });
 
   it('should create a player with custom options', () => {
@@ -58,6 +58,13 @@ describe('createPlayer', () => {
       player.mount(container);
 
       expect(player.element?.src).toBe('https://example.com/video.mp4');
+    });
+
+    it('should reject a second attachment', () => {
+      const player = createPlayer().mount(container);
+
+      expect(() => player.mount(container)).toThrow('Player is already mounted');
+      expect(() => player.bind(player.element!)).toThrow('Player is already mounted');
     });
   });
 
@@ -158,21 +165,62 @@ describe('createPlayer', () => {
   });
 
   describe('destroy', () => {
-    it('should remove the player element from DOM', () => {
+    it('should remove the player element from DOM', async () => {
       const player = createPlayer({ src: 'https://example.com/video.mp4' });
       player.mount(container);
 
       expect(container.querySelector(DEFAULT_ELEMENT_NAME)).toBeTruthy();
 
-      player.destroy();
+      await player.destroy();
 
       expect(container.querySelector(DEFAULT_ELEMENT_NAME)).toBeFalsy();
       expect(player.element).toBeUndefined();
     });
 
-    it('should not throw when destroying unmounted player', () => {
+    it('should be idempotent when destroying an unmounted player', async () => {
       const player = createPlayer();
-      expect(() => player.destroy()).not.toThrow();
+      const firstDestroy = player.destroy();
+      const secondDestroy = player.destroy();
+
+      expect(secondDestroy).toBe(firstDestroy);
+      await expect(firstDestroy).resolves.toBeUndefined();
+    });
+  });
+
+  describe('load', () => {
+    it('should update the source through the lifecycle queue', async () => {
+      const player = createPlayer({ src: 'first.mp4' }).mount(container);
+      await player.ready;
+
+      await player.load('second.mp4');
+
+      expect(player.src).toBe('second.mp4');
+      expect(player.element?.src).toBe('second.mp4');
+    });
+
+    it('should serialize rapid source changes', async () => {
+      const order: string[] = [];
+      const player = createPlayer({ src: 'first.mp4' })
+        .use({
+          name: 'lifecycle-order',
+          install: ({ getSrc }) => { order.push(`install:${getSrc()}`); },
+          destroy: ({ getSrc }) => { order.push(`destroy:${getSrc()}`); },
+        })
+        .mount(container);
+      await player.ready;
+
+      const firstLoad = player.load('second.m3u8');
+      const secondLoad = player.load('third.mpd');
+      await Promise.all([firstLoad, secondLoad]);
+
+      expect(order).toEqual([
+        'install:first.mp4',
+        'destroy:first.mp4',
+        'install:second.m3u8',
+        'destroy:second.m3u8',
+        'install:third.mpd',
+      ]);
+      expect(player.src).toBe('third.mpd');
     });
   });
 });
@@ -204,6 +252,17 @@ describe('PlayerElement', () => {
 
     element.src = 'https://example.com/video.mp4';
     expect(element.videoElement.src).toBe('https://example.com/video.mp4');
+  });
+
+  it('should clear the video source when the src attribute is removed', () => {
+    createPlayer();
+    const element = document.createElement(DEFAULT_ELEMENT_NAME) as PlayerElement;
+    element.src = 'https://example.com/video.mp4';
+
+    element.src = '';
+
+    expect(element.hasAttribute('src')).toBe(false);
+    expect(element.videoElement.hasAttribute('src')).toBe(false);
   });
 
   it('should set crossOrigin attribute to anonymous for CORS support', () => {

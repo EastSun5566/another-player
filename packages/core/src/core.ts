@@ -1,26 +1,26 @@
-/* eslint-disable class-methods-use-this */
-// eslint-disable-next-line max-classes-per-file
 import { DEFAULT_ELEMENT_NAME } from './constants';
 import type { Plugin, PluginContext } from './plugin';
 import type { PlayerEventMap, PlayerOptions } from './types';
 
-type PlayerElementAttributeName = keyof HTMLVideoElement;
+type PlayerEventListener<K extends keyof PlayerEventMap> = (event: PlayerEventMap[K]) => void;
 
-// should focus to behavior like `HTMLVideoElement`
 export class PlayerElement extends HTMLElement {
-  static get observedAttributes(): PlayerElementAttributeName[] {
+  static get observedAttributes(): string[] {
     return ['src'];
   }
 
-  videoElement: HTMLVideoElement;
+  readonly videoElement: HTMLVideoElement;
 
-  /** The address or URL of the a media resource that is to be considered. */
-  get src() {
-    return this.getAttribute('src') || '';
+  get src(): string {
+    return this.getAttribute('src') ?? '';
   }
 
   set src(source: string) {
-    this.setAttribute('src', source);
+    if (source) {
+      this.setAttribute('src', source);
+    } else {
+      this.removeAttribute('src');
+    }
   }
 
   constructor() {
@@ -29,14 +29,11 @@ export class PlayerElement extends HTMLElement {
     const videoElement = document.createElement('video');
     videoElement.style.setProperty('width', '100%');
     videoElement.crossOrigin = 'anonymous';
-
     this.videoElement = videoElement;
 
-    // Slot for custom controls
     const controlsSlot = document.createElement('slot');
     controlsSlot.name = 'controls';
 
-    // Default slot for any other content
     const defaultSlot = document.createElement('slot');
 
     const style = document.createElement('style');
@@ -69,79 +66,77 @@ export class PlayerElement extends HTMLElement {
     controlsContainer.className = 'controls-container';
     controlsContainer.appendChild(controlsSlot);
 
-    container.appendChild(videoElement);
-    container.appendChild(controlsContainer);
-    container.appendChild(defaultSlot);
-
-    const shadowRoot = this.attachShadow({ mode: 'open' });
-    shadowRoot.append(style, container);
+    container.append(videoElement, controlsContainer, defaultSlot);
+    this.attachShadow({ mode: 'open' }).append(style, container);
   }
 
-  // TODO
-  connectedCallback() {}
-
-  disconnectedCallback() {}
-
   attributeChangedCallback(
-    attributeName: PlayerElementAttributeName,
-    _oldValue: string,
-    newValue: string,
-  ) {
-    // TODO
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    this.videoElement[attributeName] = newValue;
+    attributeName: string,
+    _oldValue: string | null,
+    newValue: string | null,
+  ): void {
+    if (attributeName !== 'src') return;
+
+    if (newValue === null) {
+      this.videoElement.removeAttribute('src');
+      return;
+    }
+
+    this.videoElement.src = newValue;
   }
 }
 
-type PlayerEventListener<K extends keyof PlayerEventMap> = (event: PlayerEventMap[K]) => void;
-
-// should focus to be Player app
 class Player {
-  elementName = DEFAULT_ELEMENT_NAME;
-
   element?: PlayerElement;
 
-  src = '';
+  ready: Promise<void> = Promise.resolve();
+
+  private currentSrc: string;
 
   private plugins: Plugin[] = [];
 
-  private eventListeners: Map<string, Set<PlayerEventListener<keyof PlayerEventMap>>> = new Map();
+  private eventListeners = new Map<
+    keyof PlayerEventMap,
+    Set<PlayerEventListener<keyof PlayerEventMap>>
+  >();
 
-  private videoEventCleanup: (() => void)[] = [];
+  private videoEventCleanup: Array<() => void> = [];
 
-  constructor({
-    elementName = DEFAULT_ELEMENT_NAME,
-    element,
-    src = '',
-  }: PlayerOptions = {}) {
-    this.elementName = elementName;
-    this.src = src;
+  private lifecycleQueue: Promise<void> = Promise.resolve();
 
-    // check if player element has been defined before
-    if (!customElements.get(elementName)) {
-      customElements.define(elementName, PlayerElement);
+  private activeContext?: PluginContext;
+
+  private attached = false;
+
+  private destroyed = false;
+
+  private destroyPromise?: Promise<void>;
+
+  constructor({ element, src = '' }: PlayerOptions = {}) {
+    this.currentSrc = src;
+
+    if (!customElements.get(DEFAULT_ELEMENT_NAME)) {
+      customElements.define(DEFAULT_ELEMENT_NAME, PlayerElement);
     }
 
     if (element) this.bind(element);
   }
 
-  /**
-   * Register one or more plugins with the player.
-   * Plugins are installed in the order they are registered.
-   *
-   * @example
-   * ```ts
-   * player.use([myPlugin(), anotherPlugin({ option: true })]);
-   * ```
-   */
-  use(plugins: Plugin | Plugin[]): this {
-    const pluginArray = Array.isArray(plugins) ? plugins : [plugins];
+  get src(): string {
+    return this.currentSrc;
+  }
 
+  use(plugins: Plugin | Plugin[]): this {
+    if (this.attached) {
+      throw new Error('Plugins must be registered before the player is mounted');
+    }
+    if (this.destroyed) {
+      throw new Error('Player has been destroyed');
+    }
+
+    const pluginArray = Array.isArray(plugins) ? plugins : [plugins];
     pluginArray.forEach((plugin) => {
-      // Prevent duplicate plugin registration
-      if (this.plugins.some((p) => p.name === plugin.name)) {
-        // eslint-disable-next-line no-console
+      if (this.plugins.some((registeredPlugin) => registeredPlugin.name === plugin.name)) {
         console.warn(`Plugin "${plugin.name}" is already registered.`);
         return;
       }
@@ -151,147 +146,54 @@ class Player {
     return this;
   }
 
-  /** Get registered plugins */
   getPlugins(): Plugin[] {
     return [...this.plugins];
   }
 
-  /** Create plugin context for lifecycle hooks */
-  private createPluginContext(): PluginContext {
-    if (!this.element) {
-      throw new Error('Player not mounted');
-    }
-
-    return {
-      videoElement: this.element.videoElement,
-      getSrc: () => this.src,
-      setSrc: (src: string) => {
-        this.src = src;
-        if (this.element) {
-          this.element.src = src;
-        }
-      },
-      on: (event, listener) => {
-        this.on(event, listener);
-      },
-      off: (event, listener) => {
-        this.off(event, listener);
-      },
-    };
-  }
-
-  /** Call install hook on all registered plugins */
-  private async installPlugins(): Promise<void> {
-    const context = this.createPluginContext();
-    // eslint-disable-next-line no-restricted-syntax
-    for (const plugin of this.plugins) {
-      if (plugin.install) {
-        // eslint-disable-next-line no-await-in-loop
-        await plugin.install(context);
-      }
-    }
-  }
-
-  /** Call mount hook on all registered plugins */
-  private async mountPlugins(): Promise<void> {
-    const context = this.createPluginContext();
-    // eslint-disable-next-line no-restricted-syntax
-    for (const plugin of this.plugins) {
-      if (plugin.mount) {
-        // eslint-disable-next-line no-await-in-loop
-        await plugin.mount(context);
-      }
-    }
-  }
-
-  /** Call destroy hook on all registered plugins */
-  private async destroyPlugins(): Promise<void> {
-    if (!this.element) return;
-    const context = this.createPluginContext();
-    // Process in reverse order for cleanup
-    // eslint-disable-next-line no-restricted-syntax
-    for (const plugin of [...this.plugins].reverse()) {
-      if (plugin.destroy) {
-        // eslint-disable-next-line no-await-in-loop
-        await plugin.destroy(context);
-      }
-    }
-  }
-
-  /** Transform source through all registered plugins */
-  private async transformSource(src: string): Promise<string> {
-    if (!this.element) return src;
-    const context = this.createPluginContext();
-    let transformedSrc = src;
-    // eslint-disable-next-line no-restricted-syntax
-    for (const plugin of this.plugins) {
-      if (plugin.transformSource) {
-        // eslint-disable-next-line no-await-in-loop
-        transformedSrc = await plugin.transformSource(transformedSrc, context);
-      }
-    }
-    return transformedSrc;
-  }
-
-  /** bind existing player element to player */
   bind(element: PlayerElement): this {
+    this.assertCanAttach();
     this.element = element;
-    this.src = element.src;
-    this.applySourceAndPlugins();
+    this.attached = true;
+    this.currentSrc = element.src || this.currentSrc;
+    this.setElementSource(this.currentSrc);
     this.setupVideoEventListeners();
+    this.ready = this.enqueueLifecycle(() => this.initializePlugins());
     return this;
   }
 
-  /** mount player element to a root element or selector */
   mount(root: Element | string): this {
+    this.assertCanAttach();
+
     const rootElement = typeof root === 'string' ? document.querySelector(root) : root;
     if (!rootElement) {
       throw new Error(`Cannot find element: ${root}`);
     }
 
-    this.element = document.createElement(this.elementName) as PlayerElement;
-
-    // Apply source transform (sync part - actual transform happens async)
-    // Note: transformSource and plugin hooks are called async but mount returns sync
-    // This allows chaining while still supporting async plugins
-    this.applySourceAndPlugins();
-
+    this.element = document.createElement(DEFAULT_ELEMENT_NAME) as PlayerElement;
+    this.attached = true;
+    this.setElementSource(this.currentSrc);
     rootElement.appendChild(this.element);
     this.setupVideoEventListeners();
+    this.ready = this.enqueueLifecycle(() => this.initializePlugins());
     return this;
   }
 
-  /** Apply source transformation and call plugin hooks */
-  private applySourceAndPlugins(): void {
-    if (!this.element) return;
+  load(src: string): Promise<void> {
+    if (!this.attached || !this.element) {
+      return Promise.reject(new Error('Player not mounted'));
+    }
+    if (this.destroyed) {
+      return Promise.reject(new Error('Player has been destroyed'));
+    }
 
-    // Immediately set the source
-    this.element.src = this.src;
-
-    // Call install and mount hooks asynchronously
-    // Fire-and-forget pattern with catch for error handling
-    (async () => {
-      // Check if player was destroyed before async operations complete
-      if (!this.element) return;
-      await this.installPlugins();
-      // Check again after install
-      if (!this.element) return;
-      // Transform source through plugins
-      const transformedSrc = await this.transformSource(this.src);
-      if (this.element && transformedSrc !== this.src) {
-        this.src = transformedSrc;
-        this.element.src = transformedSrc;
-      }
-      // Check again before mount
-      if (!this.element) return;
-      await this.mountPlugins();
-    })().catch((error) => {
-      // eslint-disable-next-line no-console
-      console.error('Error in plugin lifecycle:', error);
+    return this.enqueueLifecycle(async () => {
+      await this.cleanupPluginCycle();
+      this.currentSrc = src;
+      this.setElementSource(src);
+      await this.initializePlugins();
     });
   }
 
-  /** Start playback */
   play(): Promise<void> {
     if (!this.element) {
       return Promise.reject(new Error('Player not mounted'));
@@ -299,35 +201,26 @@ class Player {
     return this.element.videoElement.play();
   }
 
-  /** Pause playback */
   pause(): void {
-    if (!this.element) return;
-    this.element.videoElement.pause();
+    this.element?.videoElement.pause();
   }
 
-  /** Seek to a specific time in seconds */
   seek(time: number): void {
-    if (!this.element) return;
-    this.element.videoElement.currentTime = time;
+    if (this.element) this.element.videoElement.currentTime = time;
   }
 
-  /** Get or set the current playback time in seconds */
   get currentTime(): number {
     return this.element?.videoElement.currentTime ?? 0;
   }
 
   set currentTime(time: number) {
-    if (this.element) {
-      this.element.videoElement.currentTime = time;
-    }
+    if (this.element) this.element.videoElement.currentTime = time;
   }
 
-  /** Get the duration of the media in seconds */
   get duration(): number {
     return this.element?.videoElement.duration ?? 0;
   }
 
-  /** Get or set the volume (0.0 to 1.0) */
   get volume(): number {
     return this.element?.videoElement.volume ?? 1;
   }
@@ -338,100 +231,185 @@ class Player {
     }
   }
 
-  /** Get or set the muted state */
   get muted(): boolean {
     return this.element?.videoElement.muted ?? false;
   }
 
   set muted(value: boolean) {
-    if (this.element) {
-      this.element.videoElement.muted = value;
-    }
+    if (this.element) this.element.videoElement.muted = value;
   }
 
-  /** Check if the player is currently paused */
   get paused(): boolean {
     return this.element?.videoElement.paused ?? true;
   }
 
-  /** Check if the player has ended */
   get ended(): boolean {
     return this.element?.videoElement.ended ?? false;
   }
 
-  /** Add an event listener for player events */
-  on<K extends keyof PlayerEventMap>(
-    event: K,
-    listener: PlayerEventListener<K>,
-  ): this {
+  on<K extends keyof PlayerEventMap>(event: K, listener: PlayerEventListener<K>): this {
     if (!this.eventListeners.has(event)) {
       this.eventListeners.set(event, new Set());
     }
-    this.eventListeners.get(event)!.add(listener as PlayerEventListener<keyof PlayerEventMap>);
+    this.eventListeners.get(event)?.add(
+      listener as PlayerEventListener<keyof PlayerEventMap>,
+    );
     return this;
   }
 
-  /** Remove an event listener for player events */
-  off<K extends keyof PlayerEventMap>(
-    event: K,
-    listener: PlayerEventListener<K>,
-  ): this {
-    this.eventListeners.get(event)?.delete(listener as PlayerEventListener<keyof PlayerEventMap>);
+  off<K extends keyof PlayerEventMap>(event: K, listener: PlayerEventListener<K>): this {
+    this.eventListeners.get(event)?.delete(
+      listener as PlayerEventListener<keyof PlayerEventMap>,
+    );
     return this;
   }
 
-  /** Emit an event to all registered listeners */
-  private emit<K extends keyof PlayerEventMap>(event: K, data: PlayerEventMap[K]): void {
-    this.eventListeners.get(event)?.forEach((listener) => {
-      listener(data);
+  destroy(): Promise<void> {
+    if (this.destroyPromise) return this.destroyPromise;
+
+    this.destroyed = true;
+    this.destroyPromise = this.enqueueLifecycle(async () => {
+      let cleanupError: unknown;
+      try {
+        await this.cleanupPluginCycle();
+      } catch (error) {
+        cleanupError = error;
+      }
+
+      this.cleanupVideoEventListeners();
+      this.eventListeners.clear();
+      this.element?.remove();
+      this.element = undefined;
+      this.attached = false;
+      this.plugins = [];
+
+      if (cleanupError) throw cleanupError;
     });
+    return this.destroyPromise;
   }
 
-  /** Set up listeners for native video events and emit player events */
+  private assertCanAttach(): void {
+    if (this.destroyed) throw new Error('Player has been destroyed');
+    if (this.attached) throw new Error('Player is already mounted');
+  }
+
+  private setElementSource(src: string): void {
+    if (this.element) this.element.src = src;
+  }
+
+  private enqueueLifecycle(operation: () => Promise<void>): Promise<void> {
+    const result = this.lifecycleQueue.then(operation);
+    this.lifecycleQueue = result.catch(() => undefined);
+    this.ready = result;
+    return result;
+  }
+
+  private createPluginContext(): PluginContext {
+    const element = this.element;
+    if (!element) throw new Error('Player not mounted');
+
+    return {
+      videoElement: element.videoElement,
+      getSrc: () => this.currentSrc,
+      setSrc: (src: string) => {
+        this.currentSrc = src;
+        this.setElementSource(src);
+      },
+      on: (event, listener) => {
+        this.on(event, listener);
+      },
+      off: (event, listener) => {
+        this.off(event, listener);
+      },
+      emit: (event, data) => {
+        this.emit(event, data);
+      },
+    };
+  }
+
+  private async initializePlugins(): Promise<void> {
+    const context = this.createPluginContext();
+    this.activeContext = context;
+
+    try {
+      for (const plugin of this.plugins) {
+        await plugin.install?.(context);
+      }
+
+      let transformedSrc = this.currentSrc;
+      for (const plugin of this.plugins) {
+        if (plugin.transformSource) {
+          transformedSrc = await plugin.transformSource(transformedSrc, context);
+        }
+      }
+
+      if (transformedSrc !== this.currentSrc) {
+        this.currentSrc = transformedSrc;
+        this.setElementSource(transformedSrc);
+      }
+
+      for (const plugin of this.plugins) {
+        await plugin.mount?.(context);
+      }
+    } catch (error) {
+      try {
+        await this.cleanupPluginCycle();
+      } catch (cleanupError) {
+        throw new AggregateError(
+          [error, cleanupError],
+          'Plugin initialization and cleanup failed',
+        );
+      }
+      throw error;
+    }
+  }
+
+  private async cleanupPluginCycle(): Promise<void> {
+    const context = this.activeContext;
+    if (!context) return;
+
+    this.activeContext = undefined;
+    const errors: unknown[] = [];
+    for (const plugin of [...this.plugins].reverse()) {
+      try {
+        await plugin.destroy?.(context);
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+
+    if (errors.length > 0) {
+      throw new AggregateError(errors, 'Plugin cleanup failed');
+    }
+  }
+
+  private emit<K extends keyof PlayerEventMap>(event: K, data: PlayerEventMap[K]): void {
+    this.eventListeners.get(event)?.forEach((listener) => listener(data));
+  }
+
   private setupVideoEventListeners(): void {
-    if (!this.element) return;
+    const videoElement = this.element?.videoElement;
+    if (!videoElement) return;
 
-    const { videoElement } = this.element;
-
-    // Clean up any existing listeners
     this.cleanupVideoEventListeners();
-
     const eventMappings: Array<{
       nativeEvent: string;
       playerEvent: keyof PlayerEventMap;
       getData: () => PlayerEventMap[keyof PlayerEventMap];
     }> = [
-      {
-        nativeEvent: 'play',
-        playerEvent: 'play',
-        getData: () => ({ currentTime: videoElement.currentTime }),
-      },
-      {
-        nativeEvent: 'pause',
-        playerEvent: 'pause',
-        getData: () => ({ currentTime: videoElement.currentTime }),
-      },
+      { nativeEvent: 'play', playerEvent: 'play', getData: () => ({ currentTime: videoElement.currentTime }) },
+      { nativeEvent: 'pause', playerEvent: 'pause', getData: () => ({ currentTime: videoElement.currentTime }) },
       {
         nativeEvent: 'timeupdate',
         playerEvent: 'timeupdate',
-        getData: () => ({
-          currentTime: videoElement.currentTime,
-          duration: videoElement.duration,
-        }),
+        getData: () => ({ currentTime: videoElement.currentTime, duration: videoElement.duration }),
       },
       {
         nativeEvent: 'volumechange',
         playerEvent: 'volumechange',
-        getData: () => ({
-          volume: videoElement.volume,
-          muted: videoElement.muted,
-        }),
+        getData: () => ({ volume: videoElement.volume, muted: videoElement.muted }),
       },
-      {
-        nativeEvent: 'ended',
-        playerEvent: 'ended',
-        getData: () => ({ currentTime: videoElement.currentTime }),
-      },
+      { nativeEvent: 'ended', playerEvent: 'ended', getData: () => ({ currentTime: videoElement.currentTime }) },
       {
         nativeEvent: 'loadedmetadata',
         playerEvent: 'loadedmetadata',
@@ -441,87 +419,26 @@ class Player {
           videoHeight: videoElement.videoHeight,
         }),
       },
-      {
-        nativeEvent: 'seeking',
-        playerEvent: 'seeking',
-        getData: () => ({ currentTime: videoElement.currentTime }),
-      },
-      {
-        nativeEvent: 'seeked',
-        playerEvent: 'seeked',
-        getData: () => ({ currentTime: videoElement.currentTime }),
-      },
-      {
-        nativeEvent: 'waiting',
-        playerEvent: 'waiting',
-        getData: () => ({ currentTime: videoElement.currentTime }),
-      },
-      {
-        nativeEvent: 'playing',
-        playerEvent: 'playing',
-        getData: () => ({ currentTime: videoElement.currentTime }),
-      },
-      {
-        nativeEvent: 'error',
-        playerEvent: 'error',
-        getData: () => ({ error: videoElement.error }),
-      },
+      { nativeEvent: 'seeking', playerEvent: 'seeking', getData: () => ({ currentTime: videoElement.currentTime }) },
+      { nativeEvent: 'seeked', playerEvent: 'seeked', getData: () => ({ currentTime: videoElement.currentTime }) },
+      { nativeEvent: 'waiting', playerEvent: 'waiting', getData: () => ({ currentTime: videoElement.currentTime }) },
+      { nativeEvent: 'playing', playerEvent: 'playing', getData: () => ({ currentTime: videoElement.currentTime }) },
+      { nativeEvent: 'error', playerEvent: 'error', getData: () => ({ error: videoElement.error }) },
     ];
 
     eventMappings.forEach(({ nativeEvent, playerEvent, getData }) => {
-      const handler = () => {
-        this.emit(playerEvent, getData());
-      };
+      const handler = () => this.emit(playerEvent, getData());
       videoElement.addEventListener(nativeEvent, handler);
-      this.videoEventCleanup.push(() => {
-        videoElement.removeEventListener(nativeEvent, handler);
-      });
+      this.videoEventCleanup.push(() => videoElement.removeEventListener(nativeEvent, handler));
     });
   }
 
-  /** Clean up video event listeners */
   private cleanupVideoEventListeners(): void {
     this.videoEventCleanup.forEach((cleanup) => cleanup());
     this.videoEventCleanup = [];
   }
-
-  /** Destroy the player and clean up resources */
-  destroy(): void {
-    // Store plugins copy and context before cleanup
-    const pluginsToDestroy = [...this.plugins];
-    const elementRef = this.element;
-
-    // Clear plugins first to prevent any new operations
-    this.plugins = [];
-
-    // Call destroy hooks on plugins asynchronously
-    if (elementRef) {
-      // Create context before clearing element reference
-      const context = this.createPluginContext();
-      // Process destroy hooks in reverse order
-      (async () => {
-        // eslint-disable-next-line no-restricted-syntax
-        for (const plugin of [...pluginsToDestroy].reverse()) {
-          if (plugin.destroy) {
-            // eslint-disable-next-line no-await-in-loop
-            await plugin.destroy(context);
-          }
-        }
-      })().catch((error) => {
-        // eslint-disable-next-line no-console
-        console.error('Error in plugin destroy:', error);
-      });
-    }
-
-    this.cleanupVideoEventListeners();
-    this.eventListeners.clear();
-    if (this.element?.parentNode) {
-      this.element.parentNode.removeChild(this.element);
-    }
-    this.element = undefined;
-  }
 }
 
-export function createPlayer(options?: PlayerOptions) {
+export function createPlayer(options?: PlayerOptions): Player {
   return new Player(options);
 }

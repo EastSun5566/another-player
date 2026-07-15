@@ -1,5 +1,5 @@
 import {
-  describe, it, expect, beforeEach, afterEach,
+  describe, it, expect, beforeEach, afterEach, vi,
 } from 'vitest';
 import { createPlayer } from '../core';
 import {
@@ -186,6 +186,13 @@ describe('Control Elements', () => {
   });
 
   describe('Control integration with player', () => {
+    const mountControl = (elementName: string) => {
+      const player = createPlayer({ src: 'https://example.com/video.mp4' }).mount(container);
+      const control = document.createElement(elementName);
+      player.element?.appendChild(control);
+      return { player, control, video: player.element!.videoElement };
+    };
+
     it('should support slotted controls in player element', () => {
       const player = createPlayer({ src: 'https://example.com/video.mp4' });
       player.mount(container);
@@ -195,6 +202,84 @@ describe('Control Elements', () => {
       // Check that controls slot exists in shadow DOM
       const controlsSlot = player.element?.shadowRoot?.querySelector('slot[name="controls"]');
       expect(controlsSlot).toBeTruthy();
+    });
+
+    it('should play and pause from the play button', () => {
+      const { control, video } = mountControl(PLAY_BUTTON_ELEMENT_NAME);
+      const play = vi.spyOn(video, 'play').mockResolvedValue(undefined);
+      const pause = vi.spyOn(video, 'pause').mockImplementation(() => {});
+      const button = control.shadowRoot?.querySelector('button');
+
+      button?.click();
+      expect(play).toHaveBeenCalledOnce();
+
+      Object.defineProperty(video, 'paused', { configurable: true, value: false });
+      button?.click();
+      expect(pause).toHaveBeenCalledOnce();
+    });
+
+    it('should toggle mute and update its state', () => {
+      const { control, video } = mountControl(MUTE_BUTTON_ELEMENT_NAME);
+      const button = control.shadowRoot?.querySelector('button');
+
+      button?.click();
+      video.dispatchEvent(new Event('volumechange'));
+
+      expect(video.muted).toBe(true);
+      expect(button?.getAttribute('aria-label')).toBe('Unmute');
+    });
+
+    it('should apply volume input and unmute playback', () => {
+      const { control, video } = mountControl(VOLUME_SLIDER_ELEMENT_NAME);
+      const input = control.shadowRoot?.querySelector('input') as HTMLInputElement;
+      video.muted = true;
+      input.value = '0.35';
+
+      input.dispatchEvent(new Event('input'));
+
+      expect(video.volume).toBe(0.35);
+      expect(video.muted).toBe(false);
+    });
+
+    it('should seek from progress input and update the time display', () => {
+      const player = createPlayer({ src: 'https://example.com/video.mp4' }).mount(container);
+      const progress = document.createElement(PROGRESS_BAR_ELEMENT_NAME);
+      const display = document.createElement(TIME_DISPLAY_ELEMENT_NAME);
+      player.element?.append(progress, display);
+      const video = player.element!.videoElement;
+      Object.defineProperty(video, 'duration', { configurable: true, value: 120 });
+      const input = progress.shadowRoot?.querySelector('input') as HTMLInputElement;
+      input.value = '0.5';
+
+      input.dispatchEvent(new Event('input'));
+      input.dispatchEvent(new Event('change'));
+      video.dispatchEvent(new Event('timeupdate'));
+
+      expect(video.currentTime).toBe(60);
+      expect(display.shadowRoot?.querySelector('span')?.textContent).toBe('1:00 / 2:00');
+    });
+
+    it('should request fullscreen from the fullscreen button', () => {
+      const { player, control } = mountControl(FULLSCREEN_BUTTON_ELEMENT_NAME);
+      const requestFullscreen = vi.fn().mockResolvedValue(undefined);
+      Object.defineProperty(player.element, 'requestFullscreen', {
+        configurable: true,
+        value: requestFullscreen,
+      });
+
+      control.shadowRoot?.querySelector('button')?.click();
+
+      expect(requestFullscreen).toHaveBeenCalledOnce();
+    });
+
+    it('should remove event handlers when disconnected', () => {
+      const { control, video } = mountControl(MUTE_BUTTON_ELEMENT_NAME);
+      const button = control.shadowRoot?.querySelector('button');
+      control.remove();
+
+      button?.click();
+
+      expect(video.muted).toBe(false);
     });
   });
 });

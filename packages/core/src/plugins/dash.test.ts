@@ -104,8 +104,8 @@ describe('DASH Plugin', () => {
     it('should have lifecycle hooks', () => {
       const plugin = dashPlugin();
       expect(typeof plugin.install).toBe('function');
-      expect(typeof plugin.mount).toBe('function');
       expect(typeof plugin.destroy).toBe('function');
+      expect(typeof plugin.api?.setQualityLevel).toBe('function');
     });
   });
 
@@ -269,10 +269,7 @@ describe('DASH Plugin', () => {
       await new Promise((resolve) => { setTimeout(resolve, 50); });
 
       // Destroy player
-      player.destroy();
-
-      // Wait for async destroy hooks
-      await new Promise((resolve) => { setTimeout(resolve, 20); });
+      await player.destroy();
 
       // Player should be destroyed
       expect(player.element).toBeUndefined();
@@ -308,6 +305,35 @@ describe('DASH Plugin', () => {
         'error',
         expect.any(Function),
       );
+    });
+
+    it('should emit DASH events through player.on and reset its API on destroy', async () => {
+      const plugin = dashPlugin();
+      const manifestListener = vi.fn();
+      const player = createPlayer({ src: 'https://example.com/stream.mpd' })
+        .on('dashManifestLoaded', manifestListener)
+        .use(plugin)
+        .mount(container);
+      await player.ready;
+
+      const dashjs = await import('dashjs');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { mockDashPlayer } = dashjs as any;
+      const manifestHandler = mockDashPlayer.on.mock.calls.find(
+        ([event]: [string]) => event === 'manifestLoaded',
+      )?.[1] as (() => void) | undefined;
+
+      manifestHandler?.();
+      plugin.api.setQualityLevel(2);
+
+      expect(manifestListener).toHaveBeenCalledWith({ type: 'manifest' });
+      expect(plugin.api.getQualityLevels()).toHaveLength(3);
+      expect(mockDashPlayer.setRepresentationForTypeByIndex).toHaveBeenCalledWith('video', 2);
+      expect(Object.hasOwn(player.element!.videoElement, '__dashControls')).toBe(false);
+
+      await player.destroy();
+      expect(plugin.api.getInstance()).toBeNull();
+      expect(plugin.api.getQualityLevels()).toEqual([]);
     });
   });
 
@@ -361,7 +387,7 @@ describe('DASH Plugin', () => {
         mockDashPlayer.initialize.mock.invocationCallOrder[0],
       );
 
-      player.destroy();
+      await player.destroy();
     });
 
     it('should not call setProtectionData when no protectionData is provided', async () => {
@@ -375,7 +401,7 @@ describe('DASH Plugin', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((dashjs as any).mockDashPlayer.setProtectionData).not.toHaveBeenCalled();
 
-      player.destroy();
+      await player.destroy();
     });
 
     it('should support protectionData with request headers', async () => {
@@ -396,7 +422,7 @@ describe('DASH Plugin', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((dashjs as any).mockDashPlayer.setProtectionData).toHaveBeenCalledWith(protectionData);
 
-      player.destroy();
+      await player.destroy();
     });
   });
 });

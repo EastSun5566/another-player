@@ -1,8 +1,7 @@
 import type {
   MediaPlayerClass, MediaPlayerSettingClass, Representation, ProtectionDataSet,
 } from 'dashjs';
-import { definePlugin, type PluginContext } from '../plugin';
-import type { PlayerEventMap } from '../types';
+import type { PluginContext, PluginWithApi } from '../plugin';
 
 /** Quality level representation for DASH streams */
 export interface DashQualityLevel {
@@ -54,16 +53,21 @@ export interface DashPluginOptions {
   protectionData?: ProtectionDataSet;
 }
 
-/** Extended player events for DASH plugin */
-export interface DashPlayerEventMap extends PlayerEventMap {
-  /** Emitted when quality levels are loaded */
-  dashQualityLevels: { levels: DashQualityLevel[] };
-  /** Emitted when quality level changes */
-  dashQualityChange: { level: DashQualityLevel | null; auto: boolean };
-  /** Emitted when DASH manifest is loaded */
-  dashManifestLoaded: { type: string };
-  /** Emitted on DASH error */
-  dashError: { error: string };
+export interface DashPluginApi {
+  getQualityLevels: () => DashQualityLevel[];
+  getCurrentQualityLevel: () => DashQualityLevel | null;
+  setQualityLevel: (levelIndex: number) => void;
+  isAutoQuality: () => boolean;
+  getInstance: () => MediaPlayerClass | null;
+}
+
+declare module '../types' {
+  interface PlayerEventMap {
+    dashQualityLevels: { levels: DashQualityLevel[] };
+    dashQualityChange: { level: DashQualityLevel | null; auto: boolean };
+    dashManifestLoaded: { type: string };
+    dashError: { error: string };
+  }
 }
 
 /** Check if a source is a DASH stream */
@@ -78,15 +82,16 @@ export function isDashSource(src: string): boolean {
  *
  * @example
  * ```ts
- * import { createPlayer } from '@another-player/core';
- * import { dashPlugin } from '@another-player/core/plugins';
+ * import { createPlayer, dashPlugin } from '@another-player/core';
  *
  * const player = createPlayer({
  *   src: 'https://example.com/stream.mpd',
  * }).use(dashPlugin()).mount('#player');
  * ```
  */
-export const dashPlugin = definePlugin<DashPluginOptions>((options = {}) => {
+export const dashPlugin = (
+  options: DashPluginOptions = {},
+): PluginWithApi<DashPluginOptions, DashPluginApi> => {
   const {
     dashConfig = {},
     enableAdaptiveBitrate = true,
@@ -171,9 +176,18 @@ export const dashPlugin = definePlugin<DashPluginOptions>((options = {}) => {
     return settings.streaming?.abr?.autoSwitchBitrate?.video ?? true;
   };
 
+  const api: DashPluginApi = {
+    getQualityLevels,
+    getCurrentQualityLevel,
+    setQualityLevel,
+    isAutoQuality,
+    getInstance: () => dashPlayer,
+  };
+
   return {
     name: 'dash',
     options,
+    api,
 
     async install(context: PluginContext) {
       const src = context.getSrc();
@@ -230,15 +244,11 @@ export const dashPlugin = definePlugin<DashPluginOptions>((options = {}) => {
 
       // Set up event listeners
       dashPlayer.on('manifestLoaded', () => {
-        videoElement.dispatchEvent(new CustomEvent('dashManifestLoaded', {
-          detail: { type: 'manifest' },
-        }));
+        context.emit('dashManifestLoaded', { type: 'manifest' });
 
         // Emit quality levels after manifest is loaded
         const levels = getQualityLevels();
-        videoElement.dispatchEvent(new CustomEvent('dashQualityLevels', {
-          detail: { levels },
-        }));
+        context.emit('dashQualityLevels', { levels });
 
         // Set initial quality if specified (after manifest is parsed)
         if (initialVideoQuality >= 0 && levels.length > 0) {
@@ -252,47 +262,25 @@ export const dashPlugin = definePlugin<DashPluginOptions>((options = {}) => {
           const levels = getQualityLevels();
           const level = levels[e.newQuality] ?? null;
 
-          videoElement.dispatchEvent(new CustomEvent('dashQualityChange', {
-            detail: {
-              level,
-              auto: isAutoQuality(),
-            },
-          }));
+          context.emit('dashQualityChange', {
+            level,
+            auto: isAutoQuality(),
+          });
         }
       });
 
       dashPlayer.on('error', (e: { error?: string }) => {
-        videoElement.dispatchEvent(new CustomEvent('dashError', {
-          detail: {
-            error: e.error ?? 'Unknown error',
-          },
-        }));
+        context.emit('dashError', { error: e.error ?? 'Unknown error' });
       });
     },
 
-    mount(context: PluginContext) {
-      // Expose quality control methods on video element for external access
-      const { videoElement } = context;
-
-      // Use a custom property to expose DASH controls
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, no-underscore-dangle
-      (videoElement as any).__dashControls = {
-        getQualityLevels,
-        getCurrentQualityLevel,
-        setQualityLevel,
-        isAutoQuality,
-        getInstance: () => dashPlayer,
-      };
-    },
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    destroy(_context: PluginContext) {
+    destroy() {
       if (dashPlayer) {
         dashPlayer.reset();
         dashPlayer = null;
       }
     },
   };
-});
+};
 
 export default dashPlugin;

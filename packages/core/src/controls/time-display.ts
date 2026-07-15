@@ -42,7 +42,6 @@ export class TimeDisplayElement extends PlayerControlElement {
   }
 
   /** Format seconds to MM:SS or H:MM:SS */
-  // eslint-disable-next-line class-methods-use-this
   private formatTime(seconds: number): string {
     if (Number.isNaN(seconds) || !Number.isFinite(seconds)) {
       return '0:00';

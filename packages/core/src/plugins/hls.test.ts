@@ -92,6 +92,25 @@ describe('HLS Plugin', () => {
     document.body.innerHTML = '';
   });
 
+  const setupSupportedHls = () => {
+    const originalCanPlayType = HTMLVideoElement.prototype.canPlayType;
+    const mediaSourceDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'MediaSource');
+    HTMLVideoElement.prototype.canPlayType = vi.fn(() => '' as CanPlayTypeResult);
+    Object.defineProperty(globalThis, 'MediaSource', {
+      configurable: true,
+      value: { isTypeSupported: () => true },
+    });
+
+    return () => {
+      HTMLVideoElement.prototype.canPlayType = originalCanPlayType;
+      if (mediaSourceDescriptor) {
+        Object.defineProperty(globalThis, 'MediaSource', mediaSourceDescriptor);
+      } else {
+        Reflect.deleteProperty(globalThis, 'MediaSource');
+      }
+    };
+  };
+
   describe('isHlsSource', () => {
     it('should return true for .m3u8 files', () => {
       expect(isHlsSource('https://example.com/stream.m3u8')).toBe(true);
@@ -141,8 +160,8 @@ describe('HLS Plugin', () => {
     it('should have lifecycle hooks', () => {
       const plugin = hlsPlugin();
       expect(typeof plugin.install).toBe('function');
-      expect(typeof plugin.mount).toBe('function');
       expect(typeof plugin.destroy).toBe('function');
+      expect(typeof plugin.api?.setQualityLevel).toBe('function');
     });
   });
 
@@ -260,16 +279,48 @@ describe('HLS Plugin', () => {
       await new Promise((resolve) => { setTimeout(resolve, 50); });
 
       // Destroy player
-      player.destroy();
-
-      // Wait for async destroy hooks
-      await new Promise((resolve) => { setTimeout(resolve, 20); });
+      await player.destroy();
 
       // Restore original
       HTMLVideoElement.prototype.canPlayType = originalCanPlayType;
 
       // Player should be destroyed
       expect(player.element).toBeUndefined();
+    });
+  });
+
+  describe('Public events and quality API', () => {
+    it('should emit HLS events through player.on and reset its API on destroy', async () => {
+      const restore = setupSupportedHls();
+      const plugin = hlsPlugin();
+      const manifestListener = vi.fn();
+      const player = createPlayer({ src: 'https://example.com/stream.m3u8' })
+        .on('hlsManifestParsed', manifestListener)
+        .use(plugin)
+        .mount(container);
+
+      try {
+        await player.ready;
+        const instance = plugin.api.getInstance();
+        const on = instance?.on as unknown as ReturnType<typeof vi.fn>;
+        const manifestHandler = on.mock.calls.find(
+          ([event]) => event === 'hlsManifestParsed',
+        )?.[1] as ((event: string, data: { levels: unknown[] }) => void) | undefined;
+
+        manifestHandler?.('hlsManifestParsed', { levels: [{}, {}, {}] });
+        plugin.api.setQualityLevel(2);
+
+        expect(manifestListener).toHaveBeenCalledWith({ levels: 3 });
+        expect(instance?.currentLevel).toBe(2);
+        expect(plugin.api.getQualityLevels()).toHaveLength(3);
+        expect(Object.hasOwn(player.element!.videoElement, '__hlsControls')).toBe(false);
+
+        await player.destroy();
+        expect(plugin.api.getInstance()).toBeNull();
+        expect(plugin.api.getQualityLevels()).toEqual([]);
+      } finally {
+        restore();
+      }
     });
   });
 
@@ -328,7 +379,7 @@ describe('HLS Plugin', () => {
         expect(lastConfig.emeEnabled).toBe(true);
         expect(lastConfig.drmSystems).toEqual(drmSystems);
 
-        player.destroy();
+        await player.destroy();
       } finally {
         restore();
       }
@@ -352,7 +403,7 @@ describe('HLS Plugin', () => {
         expect(lastConfig.emeEnabled).toBe(true);
         expect(lastConfig.drmSystems).toEqual(drmSystems);
 
-        player.destroy();
+        await player.destroy();
       } finally {
         restore();
       }
@@ -373,7 +424,7 @@ describe('HLS Plugin', () => {
         expect(lastConfig.emeEnabled).toBe(false);
         expect(lastConfig.drmSystems).toBeUndefined();
 
-        player.destroy();
+        await player.destroy();
       } finally {
         restore();
       }
@@ -398,7 +449,7 @@ describe('HLS Plugin', () => {
         expect(lastConfig.emeEnabled).toBe(true);
         expect(lastConfig.drmSystems).toEqual(drmSystems);
 
-        player.destroy();
+        await player.destroy();
       } finally {
         restore();
       }
@@ -419,7 +470,7 @@ describe('HLS Plugin', () => {
         const lastConfig = (hlsjs.default as any).getLastConfig();
         expect(lastConfig.emeEnabled).toBe(true);
 
-        player.destroy();
+        await player.destroy();
       } finally {
         restore();
       }

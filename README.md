@@ -5,7 +5,7 @@
 [![Test Status](https://img.shields.io/github/actions/workflow/status/EastSun5566/another-player/ci.yml?style=for-the-badge)](https://github.com/EastSun5566/another-player/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/EastSun5566/another-player.svg?style=for-the-badge)](https://github.com/EastSun5566/another-player/blob/main/LICENSE)
 
-> A modern, headless, standard-compliant media player with a rich plugin architecture.
+> A small, browser-first media player built with Web Components and typed plugins.
 
 ---
 
@@ -13,7 +13,6 @@
 
 - **Standard-Compliant**: Built on native Web Components.
 - **Headless & Customisable**: Decouples logic from UI; styles seamlessly with Tailwind, Windi, or custom CSS.
-- **Vue-like API**: Simple and familiar lifecycle/setup API.
 - **Extensible Plugins**: Lifecycle-hook-based system inspired by Vite and Rollup.
 - **Streaming Formats**: Play DASH and HLS streams via official plugins.
 - **Multi-DRM**: Integrated support for Widevine, PlayReady, and FairPlay.
@@ -36,7 +35,15 @@ import { createPlayer } from "@another-player/core";
 const player = createPlayer({
   src: "https://big-buck-bunny.mp4",
 }).mount("#player");
+
+await player.ready;
+await player.load("https://example.com/next-video.mp4");
+
+await player.destroy();
 ```
+
+`mount()` and `bind()` are synchronous and each player instance can be attached only once.
+Use `ready` to wait for plugin setup and `load()` to change the source.
 
 ### Using Plugins
 
@@ -52,10 +59,34 @@ const myPlugin = definePlugin((options) => ({
 
 const player = createPlayer({
   src: "https://big-buck-bunny.mp4",
-}).use([
-  myPlugin(),
-]).mount("#player");
+}).use(myPlugin()).mount("#player");
+
+await player.ready;
 ```
+
+Official streaming plugins expose their quality controls directly on the plugin instance:
+
+```ts
+import { createPlayer, hlsPlugin } from "@another-player/core";
+
+const hls = hlsPlugin();
+const player = createPlayer({ src: "https://example.com/stream.m3u8" })
+  .use(hls)
+  .mount("#player");
+
+await player.ready;
+hls.api.setQualityLevel(1);
+
+player.on("hlsQualityChange", ({ level, auto }) => {
+  console.log({ level, auto });
+});
+```
+
+Keep the plugin instance when you need its `api`. `player.getPlugins()` remains available for inspection.
+
+### Browser Support
+
+Another Player is browser-only and distributed as ESM. It accesses Web Component APIs during module evaluation, so SSR applications must dynamically import it from a client-only boundary.
 
 ---
 
@@ -66,8 +97,7 @@ const player = createPlayer({
 Pass `protectionData` to `dashPlugin`.
 
 ```ts
-import { createPlayer } from "@another-player/core";
-import { dashPlugin } from "@another-player/core/plugins";
+import { createPlayer, dashPlugin } from "@another-player/core";
 
 const player = createPlayer({
   src: "https://example.com/stream.mpd",
@@ -91,8 +121,7 @@ const player = createPlayer({
 Pass `drmSystems` to `hlsPlugin`. Setting `drmSystems` automatically enables EME.
 
 ```ts
-import { createPlayer } from "@another-player/core";
-import { hlsPlugin } from "@another-player/core/plugins";
+import { createPlayer, hlsPlugin } from "@another-player/core";
 
 const player = createPlayer({
   src: "https://example.com/stream.m3u8",
@@ -117,7 +146,26 @@ const player = createPlayer({
 
 ## Tech Stack
 
-- **Package Manager**: [PNPM](https://pnpm.io/) (`pnpm i`)
-- **Monorepo Manager**: [NX](https://nx.dev/) (`pnpm nx graph`)
+- **Package Manager**: [pnpm](https://pnpm.io/)
 - **Language**: TypeScript
-- **Build Tool**: Vite
+- **Build & Demo**: Vite
+- **Tests**: Vitest
+
+## Development
+
+```bash
+pnpm install --frozen-lockfile
+pnpm check
+pnpm dev
+```
+
+## Next: Standards & Accessibility
+
+The next release will focus on native media parity before framework adapters:
+
+- mirror standard video attributes such as `poster`, `preload`, `autoplay`, `loop`, `muted`, `playsinline`, and `crossorigin`
+- support declarative caption tracks, a captions control, and a WebVTT playground example
+- expose stable CSS parts for the video, controls, buttons, and sliders
+- complete keyboard and screen-reader behavior, including pressed states and readable time values
+
+Caption support comes before a quality-selector UI. Framework adapters remain deferred until these browser contracts are stable.

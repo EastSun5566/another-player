@@ -1,32 +1,44 @@
 {
   "name": "@another-player/core",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "type": "module",
   "files": [
     "dist"
   ],
-  "main": "dist/core.umd.cjs",
-  "module": "dist/core.js",
   "types": "dist/index.d.ts",
   "exports": {
-    "import": "./dist/core.js",
-    "require": "./dist/core.umd.cjs"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepack": "pnpm build"
   },
   "devDependencies": {
     "jsdom": "^27.2.0",
-    "vite": "^6.4.1",
-    "vite-plugin-dts": "^4.5.4",
-    "vitest": "^4.0.14"
+    "vite": "^8.1.0",
+    "vite-plugin-dts": "^5.0.0",
+    "vitest": "^4.1.0"
   },
   "dependencies": {
     "dashjs": "^5.1.0",
     "hls.js": "^1.6.15"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EastSun5566/another-player.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/EastSun5566/another-player/issues"
+  },
+  "homepage": "https://github.com/EastSun5566/another-player#readme",
+  "publishConfig": {
+    "access": "public"
   }
 }

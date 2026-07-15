@@ -1,24 +1,26 @@
-/* eslint-disable import/no-extraneous-dependencies */
-import { resolve } from 'node:path';
+/// <reference types="vitest/config" />
+
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 
-import { name } from './package.json';
-
-const entry = resolve(__dirname, 'src');
-const names = name.slice(1).split('/');
+const entry = fileURLToPath(new URL('./src/index.ts', import.meta.url));
+const sourceRoot = fileURLToPath(new URL('./src', import.meta.url));
 
 export default defineConfig({
   build: {
     emptyOutDir: true,
     lib: {
       entry,
-      name: names[0],
-      fileName: names[1],
+      formats: ['es'],
+      fileName: 'index',
+    },
+    rollupOptions: {
+      external: ['dashjs', 'hls.js'],
     },
   },
   plugins: [dts({
-    entryRoot: entry,
+    entryRoot: sourceRoot,
     exclude: ['**/*.test.ts'],
   })],
   test: {

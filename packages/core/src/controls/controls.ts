@@ -1,12 +1,10 @@
-import { PlayerControlElement } from './base';
-
 const CONTROLS_ELEMENT_NAME = 'another-player-controls';
 
 /**
  * Container for player controls.
  * Provides a slot-based structure for organizing control elements.
  */
-export class PlayerControlsElement extends PlayerControlElement {
+export class PlayerControlsElement extends HTMLElement {
   constructor() {
     super();
 
@@ -18,6 +16,7 @@ export class PlayerControlsElement extends PlayerControlElement {
         gap: 8px;
         padding: 8px;
         box-sizing: border-box;
+        color: white;
       }
 
       ::slotted(*) {
@@ -29,16 +28,6 @@ export class PlayerControlsElement extends PlayerControlElement {
 
     const shadowRoot = this.attachShadow({ mode: 'open' });
     shadowRoot.append(style, slot);
-  }
-
-  // eslint-disable-next-line class-methods-use-this
-  protected setup(): void {
-    // Controls container doesn't need video-specific setup
-  }
-
-  // eslint-disable-next-line class-methods-use-this
-  protected cleanup(): void {
-    // No cleanup needed
   }
 }
 

@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.2.0](https://github.com/EastSun5566/another-player/compare/v0.1.1...v0.2.0) (2026-07-16)
+
+### Breaking Changes
+
+- publish ESM-only browser packages and expose plugins from the root entry
+- replace mutable `src` with queued `load()`, `ready`, and async `destroy()` lifecycles
+- support only the `another-player` custom element and remove video-element plugin properties
+
+### Features
+
+- add typed plugin events and HLS/DASH quality APIs
+- replace Storybook with a small Vite playground for MP4, HLS, and DASH
+- externalize streaming engines and simplify CI and release workflows
+
 ## [0.1.1](https://github.com/EastSun5566/another-player/compare/v0.1.0...v0.1.1) (2026-07-13)
 
 

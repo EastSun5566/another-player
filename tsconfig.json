@@ -1,22 +1,12 @@
 {
-  "compileOnSave": false,
   "compilerOptions": {
-    "rootDir": ".",
-    "sourceMap": true,
-    "declaration": false,
-    "moduleResolution": "bundler",
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "importHelpers": true,
-    "target": "es2015",
-    "module": "esnext",
-    "lib": ["es2017", "dom"],
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "noEmit": true,
     "skipLibCheck": true,
-    "skipDefaultLibCheck": true,
-    "paths": {},
     "strict": true,
-    "resolveJsonModule": true,
-    "types": ["node"]
-  },
-  "include": ["packages", "apps", ".eslintrc.cjs"]
+    "resolveJsonModule": true
+  }
 }

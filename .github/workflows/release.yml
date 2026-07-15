@@ -6,7 +6,7 @@ on:
       - "v*"
 
 permissions:
-  contents: write
+  contents: read
   id-token: write
 
 jobs:
@@ -20,22 +20,26 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
         with:
-          version: 10
+          version: 10.34.5
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 22
-          cache: "pnpm"
+          node-version: 24
+          registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
-      - name: Build
-        run: pnpm run build:core
+      - name: Verify tag matches package version
+        shell: bash
+        run: |
+          PACKAGE_VERSION="$(node -p "require('./packages/core/package.json').version")"
+          test "${GITHUB_REF_NAME}" = "v${PACKAGE_VERSION}"
+
+      - name: Check
+        run: pnpm check
 
       - name: Publish to npm
-        run: |
-          npm install -g npm@latest
-          cd packages/core
-          npm publish --provenance --access public
+        working-directory: packages/core
+        run: npm publish

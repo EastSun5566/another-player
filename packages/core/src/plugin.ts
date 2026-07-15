@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { PlayerEventMap } from './types';
 
 /** Plugin context passed to lifecycle hooks */
@@ -19,6 +18,8 @@ export interface PluginContext {
     event: K,
     listener: (data: PlayerEventMap[K]) => void
   ) => void;
+  /** Emit a typed player event */
+  emit: <K extends keyof PlayerEventMap>(event: K, data: PlayerEventMap[K]) => void;
 }
 
 /** Plugin lifecycle hooks */
@@ -45,15 +46,25 @@ export interface PluginHooks {
 }
 
 /** Plugin definition object */
-export interface Plugin<TOptions = any> extends PluginHooks {
+export interface Plugin<TOptions = unknown, TApi = unknown> extends PluginHooks {
   /** Unique plugin name */
   name: string;
   /** Plugin options (resolved from factory) */
   options?: TOptions;
+  /** Optional public API exposed by the plugin instance */
+  api?: TApi;
+}
+
+/** Plugin instance with a guaranteed public API */
+export interface PluginWithApi<TOptions = unknown, TApi = unknown>
+  extends Plugin<TOptions, TApi> {
+  api: TApi;
 }
 
 /** Plugin factory function type */
-export type PluginFactory<TOptions = any> = (options?: TOptions) => Plugin<TOptions>;
+export type PluginFactory<TOptions = void, TApi = unknown> = (
+  options?: TOptions
+) => Plugin<TOptions, TApi>;
 
 /**
  * Define a plugin with options.
@@ -75,8 +86,8 @@ export type PluginFactory<TOptions = any> = (options?: TOptions) => Plugin<TOpti
  * player.use(myPlugin({ debug: true }));
  * ```
  */
-export function definePlugin<TOptions = void>(
-  factory: PluginFactory<TOptions>,
-): PluginFactory<TOptions> {
+export function definePlugin<TOptions = void, TApi = unknown>(
+  factory: PluginFactory<TOptions, TApi>,
+): PluginFactory<TOptions, TApi> {
   return factory;
 }
