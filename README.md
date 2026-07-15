@@ -5,7 +5,7 @@
 [![Test Status](https://img.shields.io/github/actions/workflow/status/EastSun5566/another-player/ci.yml?style=for-the-badge)](https://github.com/EastSun5566/another-player/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/EastSun5566/another-player.svg?style=for-the-badge)](https://github.com/EastSun5566/another-player/blob/main/LICENSE)
 
-> A small, browser-first media player built with Web Components and typed plugins.
+> 🎬 Just another player with a focus on DX
 
 ---
 
@@ -60,7 +60,9 @@ const myPlugin = definePlugin((options) => ({
 
 const player = createPlayer({
   src: "https://big-buck-bunny.mp4",
-}).use(myPlugin()).mount("#player");
+})
+  .use(myPlugin())
+  .mount("#player");
 
 await player.ready;
 ```
@@ -110,7 +112,7 @@ Caption and subtitle tracks must be direct children of `<another-player>`:
     srclang="en"
     label="English"
     default
-  >
+  />
 
   <another-player-controls slot="controls">
     <another-player-play-button></another-player-play-button>
@@ -177,19 +179,21 @@ import { createPlayer, dashPlugin } from "@another-player/core";
 
 const player = createPlayer({
   src: "https://example.com/stream.mpd",
-}).use([
-  dashPlugin({
-    protectionData: {
-      "com.widevine.alpha": {
-        serverURL: "https://license.example.com/widevine",
-        httpRequestHeaders: { Authorization: "Bearer <token>" },
+})
+  .use([
+    dashPlugin({
+      protectionData: {
+        "com.widevine.alpha": {
+          serverURL: "https://license.example.com/widevine",
+          httpRequestHeaders: { Authorization: "Bearer <token>" },
+        },
+        "com.microsoft.playready": {
+          serverURL: "https://license.example.com/playready",
+        },
       },
-      "com.microsoft.playready": {
-        serverURL: "https://license.example.com/playready",
-      },
-    },
-  }),
-]).mount("#player");
+    }),
+  ])
+  .mount("#player");
 ```
 
 ### HLS (Widevine / PlayReady / FairPlay)
@@ -201,19 +205,21 @@ import { createPlayer, hlsPlugin } from "@another-player/core";
 
 const player = createPlayer({
   src: "https://example.com/stream.m3u8",
-}).use([
-  hlsPlugin({
-    drmSystems: {
-      "com.widevine.alpha": {
-        licenseUrl: "https://license.example.com/widevine",
+})
+  .use([
+    hlsPlugin({
+      drmSystems: {
+        "com.widevine.alpha": {
+          licenseUrl: "https://license.example.com/widevine",
+        },
+        "com.apple.fps": {
+          licenseUrl: "https://license.example.com/fairplay",
+          serverCertificateUrl: "https://license.example.com/fairplay/cert",
+        },
       },
-      "com.apple.fps": {
-        licenseUrl: "https://license.example.com/fairplay",
-        serverCertificateUrl: "https://license.example.com/fairplay/cert",
-      },
-    },
-  }),
-]).mount("#player");
+    }),
+  ])
+  .mount("#player");
 ```
 
 > **Safari Note**: The HLS plugin falls back to native HLS playback on Safari if available, which bypasses HLS.js and EME configuration. EME-based DRM is only active when HLS.js is used. Enable `emeEnabled: true` to configure custom EME through `hlsConfig`.
